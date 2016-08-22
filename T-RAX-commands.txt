@@ -1,0 +1,70 @@
+Stop -- Emergency stop: remove roof power no matter what
+RPon -- Roof Power on: turn on roof power
+RPoff -- Roof Power off: turn off roof power but only if roof open or closed
+MPon -- Mount Power on: turn on mount power
+MPoff -- Mount Power off: turn off mount power
+Open -- Open the roof if safe
+Close -- Close the roof if safe
+OverrideOn -- Enable override mode: all safety conditions ignored
+OverrideOff -- Disable override mode
+DebugOn -- Enable debugging messages
+DebugOff -- Disable debugging messages
+Status -- Print status of all input sensors
+
+::Stop
+INFO: EMERGENCY STOP; Turning off roof power
+INFO: You will need to Override to recover from this
+
+::RPon
+OVERRIDE: Turning on roof power
+ERROR: Roof is already on!
+INFO: Turning on roof power
+
+::RPoff
+OVERRIDE: Turning off roof power
+ERROR: Roof is already off!
+INFO: Turning off roof power
+
+::MPon
+OVERRIDE: Turning on mount power
+ERROR: Mount is already on!
+INFO: Turning on mount power
+
+::MPoff
+OVERRIDE: Turning off mount power
+ERROR: Mount is already off!
+INFO: Turning off mount power
+
+::Open
+OVERRIDE: Opening roof
+ERROR: Cannot open roof: security not OK
+ERROR: Cannot open roof: weather not OK
+ERROR: Cannot open roof: mount must be parked first
+ERROR: Cannot open roof: roof power is not on
+ERROR: Cannot open roof: building power has failed
+ERROR: Cannot open roof: roof is not closed!
+INFO: Opening roof
+
+::Close
+OVERRIDE: Closing roof
+ERROR: Cannot close roof: mount must be parked first
+ERROR: Cannot close roof: roof power is not on
+ERROR: Cannot close roof: roof is not open
+INFO: Closing roof
+
+::OverrideOn
+INFO: Entering emergency override; be vewwy vewwy careful
+
+::OverrideOn
+INFO: Exiting emergency override; *whew*
+
+::DebugOn
+INFO: Enabling debug messages
+
+::DebugOff
+INFO: Disabling debug messages
+
+::Status
+INFO: securityOK:1 weatherOK:1 roofOpen:1 roofClosed:0 mountParked:1 bldgPowerIn:1 roofPowerIn:1 mountPowerIn:0
+
+
