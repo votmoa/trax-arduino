@@ -24,12 +24,17 @@
  * Globals
  */
 
-int heartBeat = 0;  // toggle to flash onboard LED
-unsigned int nextBeat = 0;   // timer for heartBeat
+int heartBeatInterval = 250;  // ms between heart beat flashes
 
-int sysStatus;
-int counter;
-int initialize;
+// Roof-close mode setup
+unsigned int roofCloseNotifyInterval = 5000;  // ms between roof-close mode notifications
+int lastWeatherOK;  // Track previous weather status
+int lastBldgPower;  // Track previous power status
+int wxCloseRoof = 0;  // Roof-close mode flag for weather
+int pwrCloseRoof = 0; // Roof-close mode flag for power
+#define FORCE 1
+#define MAYBE 2
+#define LAST  3
 
 
 /*
@@ -108,15 +113,15 @@ void setup()
 	pinMode(fobOutput, OUTPUT);	    // Output to physical fob
 	pinMode(heartLed, OUTPUT);	    // Heartbeat onboard LED
 
-	//Initialize outputs and variables
+	// Initialize outputs and variables
 	digitalWrite(mountPowerOut, LOW);
   digitalWrite(roofPowerOut, LOW);
 	digitalWrite(fobOutput, LOW);
 	digitalWrite(heartLed, LOW);
 
-	sysStatus = 0;
-	counter = 0;
-	initialize = 0;
+  // Prepopulate (maybe?)
+  lastWeatherOK = sensorInput(weatherOK);
+  lastBldgPower = sensorInput(bldgPowerIn);
 
 	// Default all pins to active HIGH; change by hand
 	for (int pin = 0; pin < pinCount; pin++) {
@@ -143,6 +148,19 @@ void setup()
   }
   Serial.println("INFO: " + Usage);
 
+}
+
+
+
+// Flash the onboard LED so we know we're alive
+void flashHeartBeat() {
+  static int heartBeat = 0;  // toggle to flash onboard LED
+  static unsigned int nextBeat = 0;
+  if (millis() >= nextBeat) {  
+    digitalWrite(heartLed, heartBeat ? HIGH : LOW);
+    heartBeat = !heartBeat;
+    nextBeat = millis() + heartBeatInterval;
+  }
 }
 
 
@@ -262,7 +280,7 @@ int userInput(int pin) {
 
 
 /*
- * Pull any data waiting on serial port and stash in userBuffer, then tweak userPin array
+ * Pull any data waiting on serial port and stash in userBuffer, then set userCmd
  */
 void serialSuck() {
 
@@ -316,18 +334,57 @@ void serialSuck() {
 	}
 }
 
+
+void printStatus() {
+  Serial.print("INFO:");
+  Serial.print(" securityOK:" + String(sensorInput(securityOK), DEC));
+  Serial.print(" weatherOK:" + String(sensorInput(weatherOK), DEC));
+  Serial.print(" roofOpen:" + String(sensorInput(roofOpen), DEC));
+  Serial.print(" roofClosed:" + String(sensorInput(roofClosed), DEC));
+  Serial.print(" mountParked:" + String(sensorInput(mountParked), DEC));
+  Serial.print(" bldgPowerIn:" + String(sensorInput(bldgPowerIn), DEC));
+  Serial.print(" roofPowerIn:" + String(sensorInput(roofPowerIn), DEC));
+  Serial.print(" mountPowerIn:" + String(sensorInput(mountPowerIn), DEC));
+  Serial.println();
+}
+
+
+/*
+ * Print message if timer has expired
+ *   MAYBE prints if a new message or timer has expired
+ *   FORCE always prints and resets timer
+ *   LAST always prints and clears timer
+ */
+void roofCloseNotify(int how, String msg) {
+  static unsigned int nextRoofCloseNotify = 0;
+  static String lastRoofMsg;
+  // Force printing if we have a new message
+  if ((how == MAYBE) && (lastRoofMsg != msg)) {
+    how = FORCE;
+  }
+  // Has timer expired?
+  if ((how == MAYBE) && (nextRoofCloseNotify > 0) && (millis() < nextRoofCloseNotify)) {
+      return;
+  }
+  // Notify and update timer
+  Serial.println(msg);
+  if (how == LAST) {
+    nextRoofCloseNotify = 0;
+    lastRoofMsg = String("");
+  } else {
+    nextRoofCloseNotify = millis() + roofCloseNotifyInterval;
+    lastRoofMsg = msg;
+  }
+}
+  
+
 /*
  *  Main processing
  */
 
 void loop() {
 
-	// Flash the onboard LED so we know we're alive
-	if (millis() >= nextBeat) {  
-		digitalWrite(heartLed, heartBeat ? HIGH : LOW);
-		heartBeat = !heartBeat;
-		nextBeat = millis() + 250;
-	}
+  flashHeartBeat();
 
 	// Reset any toggles that time out
 	toggleReset();
@@ -504,28 +561,93 @@ void loop() {
 
   // Status: Print sensor status
   if (userCmd == Status) {
-    Serial.print("INFO:");
-    Serial.print(" securityOK:" + String(sensorInput(securityOK), DEC));
-    Serial.print(" weatherOK:" + String(sensorInput(weatherOK), DEC));
-    Serial.print(" roofOpen:" + String(sensorInput(roofOpen), DEC));
-    Serial.print(" roofClosed:" + String(sensorInput(roofClosed), DEC));
-    Serial.print(" mountParked:" + String(sensorInput(mountParked), DEC));
-    Serial.print(" bldgPowerIn:" + String(sensorInput(bldgPowerIn), DEC));
-    Serial.print(" roofPowerIn:" + String(sensorInput(roofPowerIn), DEC));
-    Serial.print(" mountPowerIn:" + String(sensorInput(mountPowerIn), DEC));
-    Serial.println();
+    printStatus();
     userCmd = None;
   }
+
 
   /*
    * Process sensor inputs
    */
 
 	// Weather changes
+  int currWeatherOK = sensorInput(weatherOK);
+  if (currWeatherOK != lastWeatherOK) {
+    if (currWeatherOK) {
+      // Weather was not OK but has recovered
+      Serial.println("INFO: Weather sensor recovery; resuming normal operation");
+      wxCloseRoof = 0;
+    } else {
+      // Weather was OK but is no longer
+      if (EmergencyOverride) {
+        Serial.println("OVERRIDE: Weather sensor indicates inclemency; ignoring");
+      } else {
+        Serial.println("WARNING: Weather sensor indicates inclemency; entering roof-close mode");
+        wxCloseRoof = 1;
+      }
+    }
+    // Track weather status
+    lastWeatherOK = currWeatherOK;
+  }
 
 	// Building power drops
+  int currBldgPower = sensorInput(bldgPowerIn);
+  if (currBldgPower != lastBldgPower) {
+    if (currBldgPower) {
+      // Building power was not OK but has recovered
+      Serial.println("WARNING: Building power recovery; resuming normal operation");
+      pwrCloseRoof = 0;
+    } else {
+      // Weather was OK but is no longer
+      if (EmergencyOverride) {
+        Serial.println("OVERRIDE: Building power failure; ignoring");
+      } else {
+        roofCloseNotify(FORCE, "WARNING: Building power failure; entering roof-close mode");
+        pwrCloseRoof = 1;
+      }
+    }
+    // Track weather status
+    lastBldgPower = currBldgPower;
+  }
 
-	// Security changes
+	// Security changes -- what do we do here???
+
+  // Are we in WX or PWR roof-close mode?
+  if (wxCloseRoof || pwrCloseRoof) {
+    static int roofClosing = 0;
+    if (EmergencyOverride) {
+      roofCloseNotify(LAST, "OVERRIDE: Cancelling roof-close mode");
+      wxCloseRoof = 0;
+      pwrCloseRoof = 0;
+      roofClosing = 0;
+    } else {
+      if (sensorInput(roofClosed)) {
+        roofCloseNotify(LAST, "INFO: Roof-close mode: roof closed; exiting roof-close mode");
+        wxCloseRoof = 0;
+        pwrCloseRoof = 0;
+        roofClosing = 0;
+      } else if (sensorInput(roofOpen)) {
+        if (sensorInput(roofPowerIn)) {
+          if (sensorInput(mountParked)) {
+            if (roofClosing) {
+              roofCloseNotify(MAYBE, "INFO: Roof-close mode: waiting for roof to start closing");
+            } else {
+              roofCloseNotify(FORCE, "INFO: Roof-close mode: closing roof");
+              toggle(fobOutput);
+              roofClosing = 1;
+            }
+          } else {
+            roofCloseNotify(MAYBE, "INFO: Roof-close mode: waiting for mount to park");
+          }
+        } else {
+          roofCloseNotify(MAYBE, "INFO: Roof-close mode: Turning on roof power");
+          myDigitalWrite(roofPowerOut, HIGH);
+        }
+      } else {
+        roofCloseNotify(MAYBE, "INFO: Roof-close mode: waiting for roof to close");
+      }
+    }
+  }
 
 }
 
