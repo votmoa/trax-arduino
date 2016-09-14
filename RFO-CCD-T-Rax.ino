@@ -26,6 +26,11 @@
 
 int heartBeatInterval = 250;  // ms between heart beat flashes
 
+// Array and count of which inputs to watch for status changes
+int statusWatchers[] = { weatherOK, securityOK, bldgPowerIn, roofPowerIn, mountPowerIn, roofOpen, roofClosed, mountParked };
+int statusWatchersCount = 8;
+int statusInterval = 30 * 1000;  // force a status update at least every 30 seconds
+
 // Roof-close mode setup
 unsigned int roofCloseNotifyInterval = 5000;  // ms between roof-close mode notifications
 int lastWeatherOK;  // Track previous weather status
@@ -97,7 +102,7 @@ int DebugFlag = 0;
 
 void setup() 
 {
-  Serial.begin(9600);
+  Serial.begin(57600);
   Serial.println("Bootin' Up!");
 
   pinMode(weatherOK, INPUT);      // Boltwood "Weather OK" signal 
@@ -130,16 +135,16 @@ void setup()
 	//PinActive[xxx] = LOW;
 
 	// override some pins; see myDigitalRead()
-//	Simulate[weatherOK] = 1;       SimulateType[weatherOK] = HIGH;
-//	Simulate[securityOK] = 1;      SimulateType[securityOK]  = HIGH;
-//	Simulate[mountPowerIn] = 1;      SimulateType[mountPowerIn]   = HIGH;
-//	Simulate[allStopIn] = 1;       SimulateType[allStopIn] = LOW;
-//	Simulate[systemOverride] = 1;  SimulateType[systemOverride] = LOW;
-//	Simulate[userRoofPowerToggle] = 1;  SimulateType[userRoofPowerToggle] = LOW;
-//	Simulate[userMountPowerToggle] = 1;  SimulateType[userMountPowerToggle] = LOW;
+  //	Simulate[weatherOK] = 1;             SimulateType[weatherOK] = HIGH;
+  //	Simulate[securityOK] = 1;            SimulateType[securityOK]  = HIGH;
+  //	Simulate[mountPowerIn] = 1;          SimulateType[mountPowerIn]   = HIGH;
+  //	Simulate[allStopIn] = 1;             SimulateType[allStopIn] = LOW;
+  //	Simulate[systemOverride] = 1;        SimulateType[systemOverride] = LOW;
+  //	Simulate[userRoofPowerToggle] = 1;   SimulateType[userRoofPowerToggle] = LOW;
+  //	Simulate[userMountPowerToggle] = 1;  SimulateType[userMountPowerToggle] = LOW;
 
 	// Define triggers
-//	Trigger[openCloseIn] = 1;
+  //	Trigger[openCloseIn] = 1;
 
   // Dynamically build Usage string
   Usage = "Supported commands:";
@@ -160,6 +165,22 @@ void flashHeartBeat() {
     digitalWrite(heartLed, heartBeat ? HIGH : LOW);
     heartBeat = !heartBeat;
     nextBeat = millis() + heartBeatInterval;
+  }
+}
+
+
+// Send update if input status changes or a timer expires
+void statusUpdateMaybe() {
+  static unsigned int nextStatus;
+  static unsigned int lastStatus;
+  unsigned int thisStatus = 0;
+  for (int i=0; i<statusWatchersCount; i++) {
+    thisStatus += myDigitalRead(statusWatchers[i]) * 10^i;
+  }
+  if ((millis() >= nextStatus) || (thisStatus != lastStatus)) {
+    printStatus();
+    nextStatus = millis() + statusInterval;
+    lastStatus = thisStatus;
   }
 }
 
@@ -257,24 +278,10 @@ void toggleReset() {
 
 /*
  *  Read inputs but return true/false based on PinActive[] array
- *  Also hook for USB stuff when we figure that out
  */
 
 int sensorInput(int pin) {
 	return(myDigitalRead(pin) == PinActive[pin]);
-}
-
-// userInput checks both USB and actual input pin
-int userInput(int pin) {
-	// Put USB input code here...
-	if (userPin[pin]) {
-		int value = (userPin[pin]==myHIGH) ? HIGH : LOW;
-		userPin[pin] = 0;
-		return(value);
-	}
-
-	// Else check an input pin
-	return(sensorInput(pin));
 }
 
 
@@ -385,6 +392,9 @@ void roofCloseNotify(int how, String msg) {
 void loop() {
 
   flashHeartBeat();
+
+  // Send update if status changes or timer expires
+  statusUpdateMaybe();
 
 	// Reset any toggles that time out
 	toggleReset();
