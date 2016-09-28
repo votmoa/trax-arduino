@@ -3,6 +3,13 @@
 // $Id: RFO-CCD-T-Rax.ino,v 1.5 2016/08/12 20:19:17 dlk Exp dlk $
 // $Source: /Users/dlk/Documents/Arduino/RFO-CCD-T-Rax/RCS/RFO-CCD-T-Rax.ino,v $
 
+
+//ADDED BY JCF libraries to run RGB lcd and creation of lcd object
+#include <Wire.h>
+#include <rgb_lcd.h>
+rgb_lcd lcd;
+
+
 /*
  * Input/Output Pins
  */
@@ -12,6 +19,7 @@
 #define bldgPowerIn     4
 #define roofPowerIn     5
 #define mountPowerIn    6
+
 #define roofOpen        7
 #define roofClosed      8
 #define mountParked     9
@@ -24,7 +32,7 @@
  * Globals
  */
 
-int heartBeatInterval = 250;  // ms between heart beat flashes
+int heartBeatInterval = 1000;  // ms between heart beat flashes
 
 // Array and count of which inputs to watch for status changes
 int statusWatchers[] = { weatherOK, securityOK, bldgPowerIn, roofPowerIn, mountPowerIn, roofOpen, roofClosed, mountParked };
@@ -99,9 +107,20 @@ int userCmd = None;  // Takes one of the above #define values:
 int EmergencyOverride = 0;
 int DebugFlag = 0;
 
+//Setup ------------------------------------------------------------
 
 void setup() 
 {
+    // ADDED BY JCF set up the LCD's number of columns and rows, set color, and write initial message:
+    lcd.begin(16, 2);   
+    int r = 255;
+    int g = 0;
+    int b = 0;
+    lcd.setRGB(r,g,b);
+    lcd.write("RFO Roof Control");
+    lcd.setCursor(0,1);
+    lcd.write("Let's Roll!");
+    
   Serial.begin(57600);
   Serial.println("Bootin' Up!");
 
@@ -113,7 +132,7 @@ void setup()
 	pinMode(roofOpen, INPUT);       // Signal from roof open position sensor
 	pinMode(roofClosed, INPUT);	    // Signal from roof closed position sensor
   pinMode(mountParked, INPUT);    // Park position sensor for the mount
-  pinMode(roofPowerOut, INPUT);   // Roof Power enable
+  pinMode(roofPowerOut, OUTPUT);   // Roof Power enable  *MY NOTE:  I CHANGED THIS TO "OUTPUT"
 	pinMode(mountPowerOut, OUTPUT);	// Mount Power enable
 	pinMode(fobOutput, OUTPUT);	    // Output to physical fob
 	pinMode(heartLed, OUTPUT);	    // Heartbeat onboard LED
@@ -291,9 +310,18 @@ int sensorInput(int pin) {
  */
 void serialSuck() {
 
+
 	// Suck in all the data available
 	while (Serial.available() && !userBufferFull) {
 		char c = Serial.read();
+
+        //ADDED BY JCF clears lcd (if ":" received) then writes to lcd the command transmitted from Java
+        if (c == ':') {
+          lcd.clear();
+        } else {
+          lcd.write(c);
+        }
+        
 		if (c >= 32 && c <= 126) {
 			userBuffer += c;
 		} else if (c == 10) {  // newline
@@ -316,6 +344,9 @@ void serialSuck() {
       }
       
       String userCmdStr = userBuffer.substring(userBufferVersion.length());
+
+
+  
       int found = 0;
       for (int i=0; i<CmdCount; i++) {
         if (userCmdStr == Cmds[i]) {
@@ -386,7 +417,7 @@ void roofCloseNotify(int how, String msg) {
   
 
 /*
- *  Main processing
+ *  Main processing ------------------------------------------------
  */
 
 void loop() {
@@ -543,7 +574,7 @@ void loop() {
 
   // OverrideOn: Enable master override
   if (userCmd == OverrideOn) {
-    Serial.println("INFO: Entering emergency override; be vewwy vewwy careful");
+    Serial.println("INFO: Entering emergency override; BE VERY CAREFUL");
     EmergencyOverride = 1;
     userCmd = None;
   }
