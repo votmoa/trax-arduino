@@ -40,3 +40,15 @@ which implements the user interface for the Roof Controller.
 ### Function Descriptions
 
 TBD
+
+### Configuring Arduino IDE
+
+The LCD requires a library that is not included with the Arduino IDE:
+
+http://wiki.seeed.cc/Grove-LCD_RGB_Backlight/
+
+Then navigate to Sketch --> Inlcude Library --> Add .ZIP Library
+
+Once imported, select:
+* Grove LCD RGB Backlight master
+* Wire
