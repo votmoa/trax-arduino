@@ -14,37 +14,36 @@ rgb_lcd lcd;
  * Input/Output Pins
  */
 
-#define weatherOK       2
-#define securityOK      3
-#define bldgPowerIn     4
-#define roofPowerIn     5
-#define mountPowerIn    6
-
-#define roofOpen        7
-#define roofClosed      8
-#define mountParked     9
-#define roofPowerOut   10
-#define mountPowerOut  11
-#define fobOutput      12
-#define heartLed       13   // onboard LED
+#define weatherOK	 2
+#define securityOK	 3
+#define bldgPowerIn	 4
+#define roofPowerIn	 5
+#define mountPowerIn	 6
+#define roofOpen	 7
+#define roofClosed	 8
+#define mountParked	 9
+#define roofPowerOut	10
+#define mountPowerOut	11
+#define fobOutput	12
+#define heartLed	13	 // onboard LED
 
 /*
  * Globals
  */
 
-int heartBeatInterval = 1000;  // ms between heart beat flashes
+int heartBeatInterval = 1000;	// ms between heart beat flashes
 
 // Array and count of which inputs to watch for status changes
 int statusWatchers[] = { weatherOK, securityOK, bldgPowerIn, roofPowerIn, mountPowerIn, roofOpen, roofClosed, mountParked };
 int statusWatchersCount = 8;
-int statusInterval = 30 * 1000;  // force a status update at least every 30 seconds
+int statusInterval = 30 * 1000;	// force a status update at least every 30 seconds
 
 // Roof-close mode setup
-unsigned int roofCloseNotifyInterval = 5000;  // ms between roof-close mode notifications
-int lastWeatherOK;  // Track previous weather status
-int lastBldgPower;  // Track previous power status
-int wxCloseRoof = 0;  // Roof-close mode flag for weather
-int pwrCloseRoof = 0; // Roof-close mode flag for power
+unsigned int roofCloseNotifyInterval = 5000;	// ms between roof-close mode notifications
+int lastWeatherOK;	// Track previous weather status
+int lastBldgPower;	// Track previous power status
+int wxCloseRoof = 0;	// Roof-close mode flag for weather
+int pwrCloseRoof = 0;	// Roof-close mode flag for power
 #define FORCE 1
 #define MAYBE 2
 #define LAST  3
@@ -72,7 +71,7 @@ int debounce_millis = 100;	// ms to debounce
 int Trigger[pinCount];		// whether pin is a trigger or not
 int TriggerActive[pinCount];	// whether trigger is actively triggered
 
-unsigned int ToggleMS[pinCount];		// array to track toggling
+unsigned int ToggleMS[pinCount]; // array to track toggling
 int toggle_millis = 1500;	// ms to hold toggled output high
 
 // for userPin
@@ -80,72 +79,72 @@ int toggle_millis = 1500;	// ms to hold toggled output high
 #define myHIGH 1
 
 // User input tracking
-int userPin[pinCount];  // -1:LOW 0:notset 1:HIGH
+int userPin[pinCount];	// -1:LOW 0:notset 1:HIGH
 String userBuffer;
 String userBufferVersion = "::";
 int userBufferFull = 0;
 
 // User commands
-#define None        -1
-#define Stop         0
-#define RPon         1
-#define RPoff        2
-#define MPon         3
-#define MPoff        4
-#define Open         5
-#define Close        6
-#define OverrideOn   7
-#define OverrideOff  8
-#define DebugOn      9
-#define DebugOff    10
-#define Status      11
-#define CmdCount    12
-String Usage;   // Built dynamically during setup()
+#define None		-1
+#define Stop		 0
+#define RPon		 1
+#define RPoff		 2
+#define MPon		 3
+#define MPoff		 4
+#define Open		 5
+#define Close		 6
+#define OverrideOn	 7
+#define OverrideOff	 8
+#define DebugOn		 9
+#define DebugOff	10
+#define Status		11
+#define CmdCount	12
+String Usage;	 // Built dynamically during setup()
 String Cmds[] = { "Stop", "RPon", "RPoff", "MPon", "MPoff", "Open", "Close", "OverrideOn", "OverrideOff", "DebugOn", "DebugOff", "Status" };
-int userCmd = None;  // Takes one of the above #define values:
+int userCmd = None;	// Takes one of the above #define values:
 
 int EmergencyOverride = 0;
 int DebugFlag = 0;
 
-//Setup ------------------------------------------------------------
+// Setup ------------------------------------------------------------
 
 void setup() 
 {
-    // ADDED BY JCF set up the LCD's number of columns and rows, set color, and write initial message:
-    lcd.begin(16, 2);   
-    int r = 255;
-    int g = 0;
-    int b = 0;
-    lcd.setRGB(r,g,b);
-    lcd.write("RFO Roof Control");
-    lcd.setCursor(0,1);
-    lcd.write("Let's Roll!");
-    
-  Serial.begin(57600);
-  Serial.println("Bootin' Up!");
+	// ADDED BY JCF set up the LCD's number of columns and rows, set color, and write initial message:
+	lcd.begin(16, 2);	 
+	int r = 255;
+	int g = 0;
+	int b = 0;
+	lcd.setRGB(r,g,b);
+	lcd.write("RFO Roof Control");
+	lcd.setCursor(0,1);
+	lcd.write("Let's Roll!");
 
-  pinMode(weatherOK, INPUT);      // Boltwood "Weather OK" signal 
-	pinMode(securityOK, INPUT);	    // Signal from the Arduino based CCD security system
-  pinMode(bldgPowerIn, INPUT);    // Power detection for the buidling
-  pinMode(roofPowerIn, INPUT);    // Power detection for the roof
-  pinMode(mountPowerIn, INPUT);   // Power detection for the mount
-	pinMode(roofOpen, INPUT);       // Signal from roof open position sensor
-	pinMode(roofClosed, INPUT);	    // Signal from roof closed position sensor
-  pinMode(mountParked, INPUT);    // Park position sensor for the mount
-  pinMode(roofPowerOut, OUTPUT);   // Roof Power enable  *MY NOTE:  I CHANGED THIS TO "OUTPUT"
-	pinMode(mountPowerOut, OUTPUT);	// Mount Power enable
-	pinMode(fobOutput, OUTPUT);	    // Output to physical fob
-	pinMode(heartLed, OUTPUT);	    // Heartbeat onboard LED
+	Serial.begin(57600);
+	Serial.println("Bootin' Up!");
+
+	pinMode(weatherOK, INPUT);		// Boltwood "Weather OK" signal 
+	pinMode(securityOK, INPUT);		// Signal from the Arduino based CCD security system
+	pinMode(bldgPowerIn, INPUT);		// Power detection for the buidling
+	pinMode(roofPowerIn, INPUT);		// Power detection for the roof
+	pinMode(mountPowerIn, INPUT);		// Power detection for the mount
+	pinMode(roofOpen, INPUT);		// Signal from roof open position sensor
+	pinMode(roofClosed, INPUT);		// Signal from roof closed position sensor
+	pinMode(mountParked, INPUT);		// Park position sensor for the mount
+	pinMode(roofPowerOut, OUTPUT);		// Roof Power enable
+	pinMode(mountPowerOut, OUTPUT);		// Mount Power enable
+	pinMode(fobOutput, OUTPUT);		// Output to physical fob
+	pinMode(heartLed, OUTPUT);		// Heartbeat onboard LED
 
 	// Initialize outputs and variables
 	digitalWrite(mountPowerOut, LOW);
-  digitalWrite(roofPowerOut, LOW);
+	digitalWrite(roofPowerOut, LOW);
 	digitalWrite(fobOutput, LOW);
 	digitalWrite(heartLed, LOW);
 
-  // Prepopulate (maybe?)
-  lastWeatherOK = sensorInput(weatherOK);
-  lastBldgPower = sensorInput(bldgPowerIn);
+	// Prepopulate (maybe?)
+	lastWeatherOK = sensorInput(weatherOK);
+	lastBldgPower = sensorInput(bldgPowerIn);
 
 	// Default all pins to active HIGH; change by hand
 	for (int pin = 0; pin < pinCount; pin++) {
@@ -154,23 +153,23 @@ void setup()
 	//PinActive[xxx] = LOW;
 
 	// override some pins; see myDigitalRead()
-  //	Simulate[weatherOK] = 1;             SimulateType[weatherOK] = HIGH;
-  //	Simulate[securityOK] = 1;            SimulateType[securityOK]  = HIGH;
-  //	Simulate[mountPowerIn] = 1;          SimulateType[mountPowerIn]   = HIGH;
-  //	Simulate[allStopIn] = 1;             SimulateType[allStopIn] = LOW;
-  //	Simulate[systemOverride] = 1;        SimulateType[systemOverride] = LOW;
-  //	Simulate[userRoofPowerToggle] = 1;   SimulateType[userRoofPowerToggle] = LOW;
-  //	Simulate[userMountPowerToggle] = 1;  SimulateType[userMountPowerToggle] = LOW;
+	//  Simulate[weatherOK] = 1;		SimulateType[weatherOK] = HIGH;
+	//  Simulate[securityOK] = 1;		SimulateType[securityOK]	= HIGH;
+	//  Simulate[mountPowerIn] = 1;		SimulateType[mountPowerIn]	 = HIGH;
+	//  Simulate[allStopIn] = 1;		SimulateType[allStopIn] = LOW;
+	//  Simulate[systemOverride] = 1;	SimulateType[systemOverride] = LOW;
+	//  Simulate[userRoofPowerToggle] = 1;	SimulateType[userRoofPowerToggle] = LOW;
+	//  Simulate[userMountPowerToggle] = 1;	SimulateType[userMountPowerToggle] = LOW;
 
 	// Define triggers
-  //	Trigger[openCloseIn] = 1;
+	//  Trigger[openCloseIn] = 1;
 
-  // Dynamically build Usage string
-  Usage = "Supported commands:";
-  for (int i=0; i<CmdCount; i++) {
-     Usage.concat(String(' ') + Cmds[i]);
-  }
-  Serial.println("INFO: " + Usage);
+	// Dynamically build Usage string
+	Usage = "Supported commands:";
+	for (int i=0; i<CmdCount; i++) {
+		 Usage.concat(String(' ') + Cmds[i]);
+	}
+	pushMessage("INFO: " + Usage);
 
 }
 
@@ -178,36 +177,36 @@ void setup()
 
 // Flash the onboard LED so we know we're alive
 void flashHeartBeat() {
-  static int heartBeat = 0;  // toggle to flash onboard LED
-  static unsigned int nextBeat = 0;
-  if (millis() >= nextBeat) {  
-    digitalWrite(heartLed, heartBeat ? HIGH : LOW);
-    heartBeat = !heartBeat;
-    nextBeat = millis() + heartBeatInterval;
-  }
+	static int heartBeat = 0;	// toggle to flash onboard LED
+	static unsigned int nextBeat = 0;
+	if (millis() >= nextBeat) {	
+		digitalWrite(heartLed, heartBeat ? HIGH : LOW);
+		heartBeat = !heartBeat;
+		nextBeat = millis() + heartBeatInterval;
+	}
 }
 
 
 // Send update if input status changes or a timer expires
 void statusUpdateMaybe() {
-  static unsigned int nextStatus;
-  static unsigned int lastStatus;
-  unsigned int thisStatus = 0;
-  for (int i=0; i<statusWatchersCount; i++) {
-    thisStatus += myDigitalRead(statusWatchers[i]) * 10^i;
-  }
-  if ((millis() >= nextStatus) || (thisStatus != lastStatus)) {
-    printStatus();
-    nextStatus = millis() + statusInterval;
-    lastStatus = thisStatus;
-  }
+	static unsigned int nextStatus;
+	static unsigned int lastStatus;
+	unsigned int thisStatus = 0;
+	for (int i=0; i<statusWatchersCount; i++) {
+		thisStatus += myDigitalRead(statusWatchers[i]) * 10^i;
+	}
+	if ((millis() >= nextStatus) || (thisStatus != lastStatus)) {
+		printStatus();
+		nextStatus = millis() + statusInterval;
+		lastStatus = thisStatus;
+	}
 }
 
 
 void SerialDebug(String msg) {
-  if (DebugFlag) {
-    Serial.println("DEBUG: " + msg);
-  }
+	if (DebugFlag) {
+		pushMessage("DEBUG: " + msg);
+	}
 }
 
 
@@ -229,23 +228,23 @@ int myDigitalRead(int pin) {
 	// All inputs debounce but might want to change that
 	if (DebounceMS[pin]) {
 		if (millis() < DebounceMS[pin]) {
-			value = LastValue[pin];  // debounce active
+			value = LastValue[pin];	// debounce active
 		} else {
-			DebounceMS[pin] = 0;  // debounce done
+			DebounceMS[pin] = 0;	// debounce done
 		}
 	} else {
 		if (value != LastValue[pin]) {
-			DebounceMS[pin] = millis() + debounce_millis;  // start debounce timer
+			DebounceMS[pin] = millis() + debounce_millis;	// start debounce timer
 		}
 	}
 
-	//  A trigger reports exactly once then ignores input until pin value restores
+	//	A trigger reports exactly once then ignores input until pin value restores
 	if (Trigger[pin]) {
 		if (TriggerActive[pin]) {
 			// Trigger active...
 			if (value == LastValue[pin]) {
 				// ...but still being ignored; report non-triggered value
-				return((PinActive[pin] == HIGH) ? LOW : HIGH);  // return() so we don't update LastValue[]
+				return((PinActive[pin] == HIGH) ? LOW : HIGH);	// return() so we don't update LastValue[]
 			} else {
 				// ...trigger has reset; start listening to input again
 				TriggerActive[pin] = 0;
@@ -267,7 +266,7 @@ int myDigitalRead(int pin) {
 
 // Just in case I need it
 void myDigitalWrite(int pin, int value) {
-  digitalWrite(pin, value);
+	digitalWrite(pin, value);
 }
 
 
@@ -279,8 +278,8 @@ void toggle(int pin) {
 	if (ToggleMS[pin]) {
 		// we're already active; just ignore
 	} else {
-		digitalWrite(pin, HIGH);  // activate pin
-		ToggleMS[pin] = millis() + toggle_millis;  // start timer
+		digitalWrite(pin, HIGH);	// activate pin
+		ToggleMS[pin] = millis() + toggle_millis;	// start timer
 	}
 }
 
@@ -296,7 +295,7 @@ void toggleReset() {
 
 
 /*
- *  Read inputs but return true/false based on PinActive[] array
+ *	Read inputs but return true/false based on PinActive[] array
  */
 
 int sensorInput(int pin) {
@@ -310,62 +309,62 @@ int sensorInput(int pin) {
  */
 void serialSuck() {
 
-
 	// Suck in all the data available
 	while (Serial.available() && !userBufferFull) {
 		char c = Serial.read();
 
-        //ADDED BY JCF clears lcd (if ":" received) then writes to lcd the command transmitted from Java
-        if (c == ':') {
-          lcd.clear();
-        } else {
-          lcd.write(c);
-        }
-        
+		//ADDED BY JCF clears lcd (if ":" received) then writes to lcd the command transmitted from Java
+		if (c == ':') {
+			lcd.clear();
+		} else {
+			lcd.write(c);
+		}
+
 		if (c >= 32 && c <= 126) {
 			userBuffer += c;
-		} else if (c == 10) {  // newline
+		} else if (c == 10) {	// newline
 			userBufferFull = 1;
 		} // skip anything else
 	}
 
 	// Then scan the line and update userPin[]
 	if (userBufferFull) {
-    // Skip blank lines
-    if (userBuffer.length() == 0) {
-      userBufferFull = 0;
-      return;
-    }
+
+		// Skip blank lines
+		if (userBuffer.length() == 0) {
+			userBufferFull = 0;
+			return;
+		}
 		SerialDebug("userBuffer: " + userBuffer);
 
 		if (userBuffer.startsWith(userBufferVersion)) {
-      if (userCmd != None) {
-        Serial.println("WARNING: New command received before last command (" + Cmds[userCmd] + ") was processed!");
-      }
-      
-      String userCmdStr = userBuffer.substring(userBufferVersion.length());
+			if (userCmd != None) {
+				pushMessage("WARNING: New command received before last command (" + Cmds[userCmd] + ") was processed!");
+			}
 
+			String userCmdStr = userBuffer.substring(userBufferVersion.length());
 
-  
-      int found = 0;
-      for (int i=0; i<CmdCount; i++) {
-        if (userCmdStr == Cmds[i]) {
-          userCmd = i;
-          found = 1;
-          SerialDebug("userCmd: " + String(i));
-        }
-      }
-      if (!found) {
-        Serial.println("ERROR: Unknown command: " + userCmdStr);
-        Serial.println("INFO: " + Usage);
-      }
+			int found = 0;
+			for (int i=0; i<CmdCount; i++) {
+				if (userCmdStr == Cmds[i]) {
+					userCmd = i;
+					found = 1;
+					SerialDebug("userCmd: " + String(i));
+				}
+			}
+
+			if (!found) {
+				pushMessage("ERROR: Unknown command: " + userCmdStr);
+				pushMessage("INFO: " + Usage);
+			}
 
 			// Now clear the buffer
 			userBuffer.remove(0);
 			userBufferFull = 0;
+
 		} else {
-			Serial.println("ERROR: Prefix mismatch; expecting " + userBufferVersion);
-      Serial.println("INFO: " + Usage);
+			pushMessage("ERROR: Prefix mismatch; expecting " + userBufferVersion);
+			pushMessage("INFO: " + Usage);
 			userBuffer.remove(0);
 			userBufferFull = 0;
 		}
@@ -374,321 +373,324 @@ void serialSuck() {
 
 
 void printStatus() {
-  Serial.print("INFO:");
-  Serial.print(" securityOK:" + String(sensorInput(securityOK), DEC));
-  Serial.print(" weatherOK:" + String(sensorInput(weatherOK), DEC));
-  Serial.print(" roofOpen:" + String(sensorInput(roofOpen), DEC));
-  Serial.print(" roofClosed:" + String(sensorInput(roofClosed), DEC));
-  Serial.print(" mountParked:" + String(sensorInput(mountParked), DEC));
-  Serial.print(" bldgPowerIn:" + String(sensorInput(bldgPowerIn), DEC));
-  Serial.print(" roofPowerIn:" + String(sensorInput(roofPowerIn), DEC));
-  Serial.print(" mountPowerIn:" + String(sensorInput(mountPowerIn), DEC));
-  Serial.println();
+	String msg = "INFO:";
+	msg.concat(" securityOK:" + String(sensorInput(securityOK), DEC));
+	msg.concat(" weatherOK:" + String(sensorInput(weatherOK), DEC));
+	msg.concat(" roofOpen:" + String(sensorInput(roofOpen), DEC));
+	msg.concat(" roofClosed:" + String(sensorInput(roofClosed), DEC));
+	msg.concat(" mountParked:" + String(sensorInput(mountParked), DEC));
+	msg.concat(" bldgPowerIn:" + String(sensorInput(bldgPowerIn), DEC));
+	msg.concat(" roofPowerIn:" + String(sensorInput(roofPowerIn), DEC));
+	msg.concat(" mountPowerIn:" + String(sensorInput(mountPowerIn), DEC));
+	pushMessage(msg);
 }
 
 
 /*
  * Print message if timer has expired
- *   MAYBE prints if a new message or timer has expired
- *   FORCE always prints and resets timer
- *   LAST always prints and clears timer
+ *	 MAYBE prints if a new message or timer has expired
+ *	 FORCE always prints and resets timer
+ *	 LAST always prints and clears timer
  */
 void roofCloseNotify(int how, String msg) {
-  static unsigned int nextRoofCloseNotify = 0;
-  static String lastRoofMsg;
-  // Force printing if we have a new message
-  if ((how == MAYBE) && (lastRoofMsg != msg)) {
-    how = FORCE;
-  }
-  // Has timer expired?
-  if ((how == MAYBE) && (nextRoofCloseNotify > 0) && (millis() < nextRoofCloseNotify)) {
-      return;
-  }
-  // Notify and update timer
-  Serial.println(msg);
-  if (how == LAST) {
-    nextRoofCloseNotify = 0;
-    lastRoofMsg = String("");
-  } else {
-    nextRoofCloseNotify = millis() + roofCloseNotifyInterval;
-    lastRoofMsg = msg;
-  }
+	static unsigned int nextRoofCloseNotify = 0;
+	static String lastRoofMsg;
+	// Force printing if we have a new message
+	if ((how == MAYBE) && (lastRoofMsg != msg)) {
+		how = FORCE;
+	}
+	// Has timer expired?
+	if ((how == MAYBE) && (nextRoofCloseNotify > 0) && (millis() < nextRoofCloseNotify)) {
+		return;
+	}
+	// Notify and update timer
+	pushMessage(msg);
+	if (how == LAST) {
+		nextRoofCloseNotify = 0;
+		lastRoofMsg = String("");
+	} else {
+		nextRoofCloseNotify = millis() + roofCloseNotifyInterval;
+		lastRoofMsg = msg;
+	}
 }
-  
+
 
 /*
- *  Main processing ------------------------------------------------
+ *	Main processing ------------------------------------------------
  */
 
 void loop() {
 
-  flashHeartBeat();
+	flashHeartBeat();
 
-  // Send update if status changes or timer expires
-  statusUpdateMaybe();
+	// Send update if status changes or timer expires
+	statusUpdateMaybe();
+
+  // Send the next message in the queue if it's time
+  sendNextMessage();
 
 	// Reset any toggles that time out
 	toggleReset();
 
-  /*
-   * Process user commands
-   */
+	/*
+	 * Process user commands
+	 */
 
 	// Fill serial buffer and set userCmd
 	serialSuck();
 
 	// Stop: EMERGENCY STOP: turn off roof power
 	if (userCmd == Stop) {
-    Serial.println("INFO: EMERGENCY STOP; Turning off roof power");
-    Serial.println("INFO: You will need to Override to recover from this");
+		pushMessage("INFO: EMERGENCY STOP; Turning off roof power");
+		pushMessage("INFO: You will need to Override to recover from this");
 		myDigitalWrite(roofPowerOut, LOW);
-    userCmd = None;
+		userCmd = None;
 	}
 
 	// If we're moving and the scope becomes unparked, turn off roof
 	// Except we don't track moving just yet
 
-  // RPon: Turn roof power on
-  if (userCmd == RPon) {
-    if (EmergencyOverride) {
-      Serial.println("OVERRIDE: Turning on roof power");
-      myDigitalWrite(roofPowerOut, HIGH);
-    } else {
-      if (sensorInput(roofPowerIn)) {
-        Serial.println("ERROR: Roof is already on!");
-      } else {
-        Serial.println("INFO: Turning on roof power");
-        myDigitalWrite(roofPowerOut, HIGH);
-      }
-    }
-    userCmd = None;
-  }
+	// RPon: Turn roof power on
+	if (userCmd == RPon) {
+		if (EmergencyOverride) {
+			pushMessage("OVERRIDE: Turning on roof power");
+			myDigitalWrite(roofPowerOut, HIGH);
+		} else {
+			if (sensorInput(roofPowerIn)) {
+				pushMessage("ERROR: Roof is already on!");
+			} else {
+				pushMessage("INFO: Turning on roof power");
+				myDigitalWrite(roofPowerOut, HIGH);
+			}
+		}
+		userCmd = None;
+	}
 
 	// RPoff: Turn roof power off
 	if (userCmd == RPoff) {
-    if (EmergencyOverride) {
-      Serial.println("OVERRIDE: Turning off roof power");
-      myDigitalWrite(roofPowerOut, LOW);
-    } else {
-      if (sensorInput(roofPowerIn)) {
-  			Serial.println("INFO: Turning off roof power");
-  			myDigitalWrite(roofPowerOut, LOW);
-  		} else {
-        Serial.println("ERROR: Roof is already off!");
-  		}
-    }
-    userCmd = None;
+		if (EmergencyOverride) {
+			pushMessage("OVERRIDE: Turning off roof power");
+			myDigitalWrite(roofPowerOut, LOW);
+		} else {
+			if (sensorInput(roofPowerIn)) {
+				pushMessage("INFO: Turning off roof power");
+				myDigitalWrite(roofPowerOut, LOW);
+			} else {
+				pushMessage("ERROR: Roof is already off!");
+			}
+		}
+		userCmd = None;
 	}
 
-  // MPon: Turn mount power on
-  if (userCmd == MPon) {
-    if (EmergencyOverride) {
-      Serial.println("OVERRIDE: Turning on mount power");
-      myDigitalWrite(mountPowerOut, HIGH);
-    } else {
-      if (sensorInput(mountPowerIn)) {
-        Serial.println("ERROR: Mount is already on!");
-      } else {
-        Serial.println("INFO: Turning on mount power");
-        myDigitalWrite(mountPowerOut, HIGH);
-      }
-    }
-    userCmd = None;
-  }
+	// MPon: Turn mount power on
+	if (userCmd == MPon) {
+		if (EmergencyOverride) {
+			pushMessage("OVERRIDE: Turning on mount power");
+			myDigitalWrite(mountPowerOut, HIGH);
+		} else {
+			if (sensorInput(mountPowerIn)) {
+				pushMessage("ERROR: Mount is already on!");
+			} else {
+				pushMessage("INFO: Turning on mount power");
+				myDigitalWrite(mountPowerOut, HIGH);
+			}
+		}
+		userCmd = None;
+	}
 
-  // MPoff: Turn mount power off
-  if (userCmd == MPoff) {
-    if (EmergencyOverride) {
-      Serial.println("OVERRIDE: Turning off mount power");
-      myDigitalWrite(mountPowerOut, LOW);
-    } else {
-      if (sensorInput(mountPowerIn)) {
-        Serial.println("INFO: Turning off mount power");
-        myDigitalWrite(mountPowerOut, LOW);
-      } else {
-        Serial.println("ERROR: Mount is already off!");
-      }
-    }
-    userCmd = None;
-  }
+	// MPoff: Turn mount power off
+	if (userCmd == MPoff) {
+		if (EmergencyOverride) {
+			pushMessage("OVERRIDE: Turning off mount power");
+			myDigitalWrite(mountPowerOut, LOW);
+		} else {
+			if (sensorInput(mountPowerIn)) {
+				pushMessage("INFO: Turning off mount power");
+				myDigitalWrite(mountPowerOut, LOW);
+			} else {
+				pushMessage("ERROR: Mount is already off!");
+			}
+		}
+		userCmd = None;
+	}
 
-  // Open: Open the roof
-  if (userCmd == Open) {
-    if (EmergencyOverride) {
-      Serial.println("OVERRIDE: Opening roof");
-      toggle(fobOutput);
-    } else {
-      if (sensorInput(roofClosed)) {
-        if (sensorInput(bldgPowerIn)) {
-          if (sensorInput(roofPowerIn)) {
-            if (sensorInput(mountParked)) {
-              if (sensorInput(weatherOK)) {
-                if (sensorInput(securityOK)) {
-                  Serial.println("INFO: Opening roof");
-                  toggle(fobOutput);
-                } else {
-                  Serial.println("ERROR: Cannot open roof: security not OK");
-                }
-              } else {
-                Serial.println("ERROR: Cannot open roof: weather not OK");
-              }
-            } else {
-              Serial.println("ERROR: Cannot open roof: mount must be parked first");
-            }
-          } else {
-            Serial.println("ERROR: Cannot open roof: roof power is not on");
-          }
-        } else {
-          Serial.println("ERROR: Cannot open roof: building power has failed");
-        }
-      } else {
-        Serial.println("ERROR: Cannot open roof: roof is not closed!");
-      }
-    }
-    userCmd = None;
-  }
+	// Open: Open the roof
+	if (userCmd == Open) {
+		if (EmergencyOverride) {
+			pushMessage("OVERRIDE: Opening roof");
+			toggle(fobOutput);
+		} else {
+			if (sensorInput(roofClosed)) {
+				if (sensorInput(bldgPowerIn)) {
+					if (sensorInput(roofPowerIn)) {
+						if (sensorInput(mountParked)) {
+							if (sensorInput(weatherOK)) {
+								if (sensorInput(securityOK)) {
+									pushMessage("INFO: Opening roof");
+									toggle(fobOutput);
+								} else {
+									pushMessage("ERROR: Cannot open roof: security not OK");
+								}
+							} else {
+								pushMessage("ERROR: Cannot open roof: weather not OK");
+							}
+						} else {
+							pushMessage("ERROR: Cannot open roof: mount must be parked first");
+						}
+					} else {
+						pushMessage("ERROR: Cannot open roof: roof power is not on");
+					}
+				} else {
+					pushMessage("ERROR: Cannot open roof: building power has failed");
+				}
+			} else {
+				pushMessage("ERROR: Cannot open roof: roof is not closed!");
+			}
+		}
+		userCmd = None;
+	}
 
-  // Close: Close the roof
-  if (userCmd == Close) {
-    if (EmergencyOverride) {
-      Serial.println("OVERRIDE: Closing roof");
-      toggle(fobOutput);
-    } else {
-      if (sensorInput(roofOpen)) {
-        if (sensorInput(roofPowerIn)) {
-          if (sensorInput(mountParked)) {
-            Serial.println("INFO: Closing roof");
-            toggle(fobOutput);
-          } else {
-            Serial.println("ERROR: Cannot close roof: mount must be parked first");
-          }
-        } else {
-          Serial.println("ERROR: Cannot close roof: roof power is not on");
-        }
-      } else {
-        Serial.println("ERROR: Cannot close roof: roof is not open");
-      }
-    }
-    userCmd = None;
-  }
+	// Close: Close the roof
+	if (userCmd == Close) {
+		if (EmergencyOverride) {
+			pushMessage("OVERRIDE: Closing roof");
+			toggle(fobOutput);
+		} else {
+			if (sensorInput(roofOpen)) {
+				if (sensorInput(roofPowerIn)) {
+					if (sensorInput(mountParked)) {
+						pushMessage("INFO: Closing roof");
+						toggle(fobOutput);
+					} else {
+						pushMessage("ERROR: Cannot close roof: mount must be parked first");
+					}
+				} else {
+					pushMessage("ERROR: Cannot close roof: roof power is not on");
+				}
+			} else {
+				pushMessage("ERROR: Cannot close roof: roof is not open");
+			}
+		}
+		userCmd = None;
+	}
 
-  // OverrideOn: Enable master override
-  if (userCmd == OverrideOn) {
-    Serial.println("INFO: Entering emergency override; BE VERY CAREFUL");
-    EmergencyOverride = 1;
-    userCmd = None;
-  }
+	// OverrideOn: Enable master override
+	if (userCmd == OverrideOn) {
+		pushMessage("INFO: Entering emergency override; BE VERY CAREFUL");
+		EmergencyOverride = 1;
+		userCmd = None;
+	}
 
-  // OverrideOn: Enable master override
-  if (userCmd == OverrideOff) {
-    Serial.println("INFO: Exiting emergency override; *whew*");
-    EmergencyOverride = 0;
-    userCmd = None;
-  }
+	// OverrideOn: Enable master override
+	if (userCmd == OverrideOff) {
+		pushMessage("INFO: Exiting emergency override; *whew*");
+		EmergencyOverride = 0;
+		userCmd = None;
+	}
 
-  // DebugOn: Enable debugging messages
-  if (userCmd == DebugOn) {
-    Serial.println("INFO: Enabling debug messages");
-    DebugFlag = 1;
-    userCmd = None;
-  }
-  
-  // DebugOff: Disable debugging messages
-  if (userCmd == DebugOff) {
-    Serial.println("INFO: Disabling debug messages");
-    DebugFlag = 0;
-    userCmd = None;
-  }
+	// DebugOn: Enable debugging messages
+	if (userCmd == DebugOn) {
+		pushMessage("INFO: Enabling debug messages");
+		DebugFlag = 1;
+		userCmd = None;
+	}
+	
+	// DebugOff: Disable debugging messages
+	if (userCmd == DebugOff) {
+		pushMessage("INFO: Disabling debug messages");
+		DebugFlag = 0;
+		userCmd = None;
+	}
 
-  // Status: Print sensor status
-  if (userCmd == Status) {
-    printStatus();
-    userCmd = None;
-  }
+	// Status: Print sensor status
+	if (userCmd == Status) {
+		printStatus();
+		userCmd = None;
+	}
 
 
-  /*
-   * Process sensor inputs
-   */
+	/*
+	 * Process sensor inputs
+	 */
 
 	// Weather changes
-  int currWeatherOK = sensorInput(weatherOK);
-  if (currWeatherOK != lastWeatherOK) {
-    if (currWeatherOK) {
-      // Weather was not OK but has recovered
-      Serial.println("INFO: Weather sensor recovery; resuming normal operation");
-      wxCloseRoof = 0;
-    } else {
-      // Weather was OK but is no longer
-      if (EmergencyOverride) {
-        Serial.println("OVERRIDE: Weather sensor indicates inclemency; ignoring");
-      } else {
-        Serial.println("WARNING: Weather sensor indicates inclemency; entering roof-close mode");
-        wxCloseRoof = 1;
-      }
-    }
-    // Track weather status
-    lastWeatherOK = currWeatherOK;
-  }
+	int currWeatherOK = sensorInput(weatherOK);
+	if (currWeatherOK != lastWeatherOK) {
+		if (currWeatherOK) {
+			// Weather was not OK but has recovered
+			pushMessage("INFO: Weather sensor recovery; resuming normal operation");
+			wxCloseRoof = 0;
+		} else {
+			// Weather was OK but is no longer
+			if (EmergencyOverride) {
+				pushMessage("OVERRIDE: Weather sensor indicates inclemency; ignoring");
+			} else {
+				pushMessage("WARNING: Weather sensor indicates inclemency; entering roof-close mode");
+				wxCloseRoof = 1;
+			}
+		}
+		// Track weather status
+		lastWeatherOK = currWeatherOK;
+	}
 
 	// Building power drops
-  int currBldgPower = sensorInput(bldgPowerIn);
-  if (currBldgPower != lastBldgPower) {
-    if (currBldgPower) {
-      // Building power was not OK but has recovered
-      Serial.println("WARNING: Building power recovery; resuming normal operation");
-      pwrCloseRoof = 0;
-    } else {
-      // Weather was OK but is no longer
-      if (EmergencyOverride) {
-        Serial.println("OVERRIDE: Building power failure; ignoring");
-      } else {
-        roofCloseNotify(FORCE, "WARNING: Building power failure; entering roof-close mode");
-        pwrCloseRoof = 1;
-      }
-    }
-    // Track weather status
-    lastBldgPower = currBldgPower;
-  }
+	int currBldgPower = sensorInput(bldgPowerIn);
+	if (currBldgPower != lastBldgPower) {
+		if (currBldgPower) {
+			// Building power was not OK but has recovered
+			pushMessage("WARNING: Building power recovery; resuming normal operation");
+			pwrCloseRoof = 0;
+		} else {
+			// Weather was OK but is no longer
+			if (EmergencyOverride) {
+				pushMessage("OVERRIDE: Building power failure; ignoring");
+			} else {
+				roofCloseNotify(FORCE, "WARNING: Building power failure; entering roof-close mode");
+				pwrCloseRoof = 1;
+			}
+		}
+		// Track weather status
+		lastBldgPower = currBldgPower;
+	}
 
 	// Security changes -- what do we do here???
 
-  // Are we in WX or PWR roof-close mode?
-  if (wxCloseRoof || pwrCloseRoof) {
-    static int roofClosing = 0;
-    if (EmergencyOverride) {
-      roofCloseNotify(LAST, "OVERRIDE: Cancelling roof-close mode");
-      wxCloseRoof = 0;
-      pwrCloseRoof = 0;
-      roofClosing = 0;
-    } else {
-      if (sensorInput(roofClosed)) {
-        roofCloseNotify(LAST, "INFO: Roof-close mode: roof closed; exiting roof-close mode");
-        wxCloseRoof = 0;
-        pwrCloseRoof = 0;
-        roofClosing = 0;
-      } else if (sensorInput(roofOpen)) {
-        if (sensorInput(roofPowerIn)) {
-          if (sensorInput(mountParked)) {
-            if (roofClosing) {
-              roofCloseNotify(MAYBE, "INFO: Roof-close mode: waiting for roof to start closing");
-            } else {
-              roofCloseNotify(FORCE, "INFO: Roof-close mode: closing roof");
-              toggle(fobOutput);
-              roofClosing = 1;
-            }
-          } else {
-            roofCloseNotify(MAYBE, "INFO: Roof-close mode: waiting for mount to park");
-          }
-        } else {
-          roofCloseNotify(MAYBE, "INFO: Roof-close mode: Turning on roof power");
-          myDigitalWrite(roofPowerOut, HIGH);
-        }
-      } else {
-        roofCloseNotify(MAYBE, "INFO: Roof-close mode: waiting for roof to close");
-      }
-    }
-  }
+	// Are we in WX or PWR roof-close mode?
+	if (wxCloseRoof || pwrCloseRoof) {
+		static int roofClosing = 0;
+		if (EmergencyOverride) {
+			roofCloseNotify(LAST, "OVERRIDE: Cancelling roof-close mode");
+			wxCloseRoof = 0;
+			pwrCloseRoof = 0;
+			roofClosing = 0;
+		} else {
+			if (sensorInput(roofClosed)) {
+				roofCloseNotify(LAST, "INFO: Roof-close mode: roof closed; exiting roof-close mode");
+				wxCloseRoof = 0;
+				pwrCloseRoof = 0;
+				roofClosing = 0;
+			} else if (sensorInput(roofOpen)) {
+				if (sensorInput(roofPowerIn)) {
+					if (sensorInput(mountParked)) {
+						if (roofClosing) {
+							roofCloseNotify(MAYBE, "INFO: Roof-close mode: waiting for roof to start closing");
+						} else {
+							roofCloseNotify(FORCE, "INFO: Roof-close mode: closing roof");
+							toggle(fobOutput);
+							roofClosing = 1;
+						}
+					} else {
+						roofCloseNotify(MAYBE, "INFO: Roof-close mode: waiting for mount to park");
+					}
+				} else {
+					roofCloseNotify(MAYBE, "INFO: Roof-close mode: Turning on roof power");
+					myDigitalWrite(roofPowerOut, HIGH);
+				}
+			} else {
+				roofCloseNotify(MAYBE, "INFO: Roof-close mode: waiting for roof to close");
+			}
+		}
+	}
 
 }
 
