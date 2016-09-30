@@ -6,48 +6,40 @@
 #define messageInterval 200
 
 String MessageQueue[queueLen];
-int Qhead = 0;		// Pop messages off head
-int Qtail = -1;		// Push messages onto tail (negative means queue empty)
+int Qhead = 0;		// Index of head of queue
+int Qsize = 0;		// Number of messages in queue
 int Qdrops = 0;		// Queue full drop counter
 int QdropIndex = -1;	// Index of queue full message (if we've dropped)
 
 // Push a message on the tail of the queue
 int pushMessage(String msg) {
-	// Prime the pump
-	if (Qtail < 0) {
-		Qtail = Qhead;
-	}
-	// Check for queue full
-	if ((Qhead == Qtail+1) || (Qhead == 0 && Qtail == queueLen)) {
-		// Reserve the last queue slot for Queue full message
-		MessageQueue[Qtail] = "ERROR: Queue full: " + String(++Qdrops,DEC) + " messages dropped";
+	//Serial.println(String(millis()) + ": pushMessage: Qhead:" + String(Qhead) + " Qsize:" + String(Qsize));
+	if (Qsize == queueLen) {
+		// Queue full: overwrite the last slot with "Queue full" message
+		int Qtail = (Qhead + Qsize-1) % queueLen;
+		MessageQueue[Qtail] = "ERROR: Queue full: " + String(++Qdrops) + " messages dropped";
 		QdropIndex = Qtail;	// Track so we can clear counter
 		return(0);
 	} else {
 		// Queue has space
+		int Qtail = (Qhead + ++Qsize) % queueLen;
 		MessageQueue[Qtail] = msg;
-		if (++Qtail > queueLen) {	// Increment and check for wrap
-			Qtail = 0;
-		}
 		return(1);
 	}
 }
 
 // Pop a message off the head of the queue
 String popMessage() {
-	if (Qtail >= 0) {
+	//Serial.println(String(millis()) + ": popMessage: Qhead:" + String(Qhead) + " Qsize:" + String(Qsize));
+	if (Qsize > 0) {
 		// There's a message in the queue
 		int thisMsg = Qhead;
 		if (Qhead == QdropIndex) {	// Reset drop counter if we pop it
 			QdropIndex = -1;
 			Qdrops = 0;
 		}
-		if (Qhead == Qtail) {
-			Qtail = -1;		// We just popped the last entry
-		}
-		if (++Qhead > queueLen) {	// Increment and check for wrap
-			Qhead = 0;
-		}
+		Qhead = (Qhead+1) % queueLen;
+		Qsize--;
 		return (MessageQueue[thisMsg]);
 	}
 	return ("");
@@ -56,7 +48,7 @@ String popMessage() {
 // Send next message in queue if it's time
 void sendNextMessage() {
 	static unsigned int nextMessage;
-	if ((Qtail >= 0) && (millis() >= nextMessage)) {
+	if ((Qsize > 0) && (millis() >= nextMessage)) {
 		Serial.println(popMessage());
 		nextMessage = millis() + messageInterval;
 	}
