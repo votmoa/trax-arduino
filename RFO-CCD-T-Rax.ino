@@ -40,8 +40,8 @@ int statusInterval = 30 * 1000;	// force a status update at least every 30 secon
 
 // Roof-close mode setup
 unsigned int roofCloseNotifyInterval = 5000;	// ms between roof-close mode notifications
-int lastWeatherOK;	// Track previous weather status
-int lastBldgPower;	// Track previous power status
+int lastWeatherOK = HIGH;	// Track previous weather status
+int lastBldgPower = HIGH;	// Track previous power status
 int wxCloseRoof = 0;	// Roof-close mode flag for weather
 int pwrCloseRoof = 0;	// Roof-close mode flag for power
 #define FORCE 1
@@ -141,10 +141,6 @@ void setup()
 	digitalWrite(roofPowerOut, LOW);
 	digitalWrite(fobOutput, LOW);
 	digitalWrite(heartLed, LOW);
-
-	// Prepopulate (maybe?)
-	lastWeatherOK = sensorInput(weatherOK);
-	lastBldgPower = sensorInput(bldgPowerIn);
 
 	// Default all pins to active HIGH; change by hand
 	for (int pin = 0; pin < pinCount; pin++) {
