@@ -422,8 +422,8 @@ void loop() {
 	// Send update if status changes or timer expires
 	statusUpdateMaybe();
 
-  // Send the next message in the queue if it's time
-  sendNextMessage();
+	// Send the next message in the queue if it's time
+	sendNextMessage();
 
 	// Reset any toggles that time out
 	toggleReset();
