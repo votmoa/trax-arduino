@@ -487,8 +487,12 @@ void loop() {
 			if (sensorInput(mountPowerIn)) {
 				pushMessage("ERROR: Mount is already on!");
 			} else {
-				pushMessage("INFO: Turning on mount power");
-				myDigitalWrite(mountPowerOut, HIGH);
+				if (sensorInput(roofOpen)) {
+					pushMessage("ERROR: Cannot turn on mount: roof is not open");
+				} else {
+					pushMessage("INFO: Turning on mount power");
+					myDigitalWrite(mountPowerOut, HIGH);
+				}
 			}
 		}
 		userCmd = None;
@@ -520,15 +524,19 @@ void loop() {
 				if (sensorInput(bldgPowerIn)) {
 					if (sensorInput(roofPowerIn)) {
 						if (sensorInput(mountParked)) {
-							if (sensorInput(weatherOK)) {
-								if (sensorInput(securityOK)) {
-									pushMessage("INFO: Opening roof");
-									toggle(fobOutput);
+							if (!sensorInput(mountPowerIn)) {
+								if (sensorInput(weatherOK)) {
+									if (sensorInput(securityOK)) {
+										pushMessage("INFO: Opening roof");
+										toggle(fobOutput);
+									} else {
+										pushMessage("ERROR: Cannot open roof: security not OK");
+									}
 								} else {
-									pushMessage("ERROR: Cannot open roof: security not OK");
+									pushMessage("ERROR: Cannot open roof: weather not OK");
 								}
 							} else {
-								pushMessage("ERROR: Cannot open roof: weather not OK");
+								pushMessage("ERROR: Cannot open roof: mount power is on");
 							}
 						} else {
 							pushMessage("ERROR: Cannot open roof: mount must be parked first");
@@ -555,8 +563,12 @@ void loop() {
 			if (sensorInput(roofOpen)) {
 				if (sensorInput(roofPowerIn)) {
 					if (sensorInput(mountParked)) {
-						pushMessage("INFO: Closing roof");
-						toggle(fobOutput);
+						if (!sensorInput(mountPowerIn)) {
+							pushMessage("INFO: Closing roof");
+							toggle(fobOutput);
+						} else {
+							pushMessage("ERROR: Cannot close roof: mount power is on");
+						}
 					} else {
 						pushMessage("ERROR: Cannot close roof: mount must be parked first");
 					}
@@ -661,22 +673,32 @@ void loop() {
 			roofClosing = 0;
 		} else {
 			if (sensorInput(roofClosed)) {
-				roofCloseNotify(LAST, "INFO: Roof-close mode: roof closed; exiting roof-close mode");
+				roofCloseNotify(LAST, "INFO: Roof-close mode: mount power off; exiting roof-close mode");
 				wxCloseRoof = 0;
 				pwrCloseRoof = 0;
 				roofClosing = 0;
 			} else if (sensorInput(roofOpen)) {
 				if (sensorInput(roofPowerIn)) {
 					if (sensorInput(mountParked)) {
-						if (roofClosing) {
-							roofCloseNotify(MAYBE, "INFO: Roof-close mode: waiting for roof to start closing");
+						if (sensorInput(mountPowerIn)) {
+							roofCloseNotify(MAYBE, "INFO: Roof-close mode: mount parked; turning off mount power");
+							myDigitalWrite(mountPowerOut, LOW);
 						} else {
-							roofCloseNotify(FORCE, "INFO: Roof-close mode: closing roof");
-							toggle(fobOutput);
-							roofClosing = 1;
+							if (roofClosing) {
+								roofCloseNotify(MAYBE, "INFO: Roof-close mode: waiting for roof to start closing");
+							} else {
+								roofCloseNotify(FORCE, "INFO: Roof-close mode: closing roof");
+								toggle(fobOutput);
+								roofClosing = 1;
+							}
 						}
 					} else {
-						roofCloseNotify(MAYBE, "INFO: Roof-close mode: waiting for mount to park");
+						if (sensorInput(mountPowerIn)) {
+							roofCloseNotify(MAYBE, "INFO: Roof-close mode: waiting for mount to park");
+						} else {
+							roofCloseNotify(MAYBE, "INFO: Roof-close mode: Turning on mount power");
+							myDigitalWrite(mountPowerOut, HIGH);
+						}
 					}
 				} else {
 					roofCloseNotify(MAYBE, "INFO: Roof-close mode: Turning on roof power");
