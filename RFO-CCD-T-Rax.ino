@@ -487,7 +487,7 @@ void loop() {
 			if (sensorInput(mountPowerIn)) {
 				pushMessage("ERROR: Mount is already on!");
 			} else {
-				if (sensorInput(roofOpen)) {
+				if (!sensorInput(roofOpen)) {
 					pushMessage("ERROR: Cannot turn on mount: roof is not open");
 				} else {
 					pushMessage("INFO: Turning on mount power");
