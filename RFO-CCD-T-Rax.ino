@@ -7,6 +7,7 @@
 //ADDED BY JCF libraries to run RGB lcd and creation of lcd object
 #include <Wire.h>
 #include <rgb_lcd.h>
+
 rgb_lcd lcd;
 
 
@@ -62,6 +63,7 @@ int PinActive[pinCount];	// Array of HIGH/LOW values that make a pin active
 // Array of pins to simulate indexed by pin number; set to 1 to simulate pin
 int Simulate[pinCount];		// whether a pin is simulated
 int SimulateType[pinCount];	// value to simulate (HIGH or LOW)
+
 
 // Array used to debounce an input (all inputs are debounced for now)
 unsigned int DebounceMS[pinCount];	// array to track debounce
@@ -147,15 +149,15 @@ void setup()
 		PinActive[pin] = HIGH;
 	}
 	//PinActive[xxx] = LOW;
+	PinActive[roofPowerOut] = LOW;
+	PinActive[mountPowerOut] = LOW;
 
 	// override some pins; see myDigitalRead()
-	//  Simulate[weatherOK] = 1;		SimulateType[weatherOK] = HIGH;
-	//  Simulate[securityOK] = 1;		SimulateType[securityOK]	= HIGH;
-	//  Simulate[mountPowerIn] = 1;		SimulateType[mountPowerIn]	 = HIGH;
-	//  Simulate[allStopIn] = 1;		SimulateType[allStopIn] = LOW;
-	//  Simulate[systemOverride] = 1;	SimulateType[systemOverride] = LOW;
-	//  Simulate[userRoofPowerToggle] = 1;	SimulateType[userRoofPowerToggle] = LOW;
-	//  Simulate[userMountPowerToggle] = 1;	SimulateType[userMountPowerToggle] = LOW;
+	//Simulate[xxx] = 1; SimulateType[xxx] = HIGH|LOW;
+	Simulate[bldgPowerIn] = 1; SimulateType[bldgPowerIn] = HIGH;
+	Simulate[roofPowerIn] = 1; SimulateType[roofPowerIn] = HIGH;
+	Simulate[securityOK] = 1; SimulateType[securityOK] = HIGH;
+	Simulate[weatherOK] = 1; SimulateType[weatherOK] = HIGH;
 
 	// Define triggers
 	//  Trigger[openCloseIn] = 1;
@@ -183,6 +185,42 @@ void flashHeartBeat() {
 }
 
 
+extern unsigned int __bss_end;
+extern unsigned int __heap_start;
+//extern void *__brkval;
+
+int freeMemory() {
+	int free_memory;
+	free_memory = ((int)&free_memory) - ((int)&__bss_end);
+	return free_memory;
+}
+
+
+// Tally and periodically report stats
+void reportStatsMaybe() {
+	static int statsMillis = 60000;  // Report stats every 60 seconds
+	static unsigned int nextStats = 0;
+	static int loopCount = 0;
+
+	if (millis() > nextStats) {
+		if (nextStats == 0) {
+      // First time through
+			nextStats = millis() + statsMillis;
+		} else {
+      // Time to report
+      String msg;
+      msg = "INFO:";
+      msg.concat(" loopCount:" + String(loopCount/(statsMillis/1000)) + "/sec");
+      //msg.concat(" mem:" + String(freeMemory()));
+      pushMessage(msg);
+			loopCount = 0;  //reset
+			nextStats = millis() + statsMillis;
+		}
+	} else {
+		loopCount++;
+	}
+}
+
 // Send update if input status changes or a timer expires
 void statusUpdateMaybe() {
 	static unsigned int nextStatus;
@@ -201,7 +239,7 @@ void statusUpdateMaybe() {
 
 void SerialDebug(String msg) {
 	if (DebugFlag) {
-		pushMessage("DEBUG: " + msg);
+		Serial.println("DEBUG: " + msg);
 	}
 }
 
@@ -224,12 +262,15 @@ int myDigitalRead(int pin) {
 	// All inputs debounce but might want to change that
 	if (DebounceMS[pin]) {
 		if (millis() < DebounceMS[pin]) {
+			SerialDebug("Debounce " + String(pin) + " active: old:" + String(LastValue[pin]) + " new:" + String(value));
 			value = LastValue[pin];	// debounce active
 		} else {
+			SerialDebug("Debounce " + String(pin) + " done: old:" + String(LastValue[pin]) + " new:" + String(value));
 			DebounceMS[pin] = 0;	// debounce done
 		}
 	} else {
 		if (value != LastValue[pin]) {
+			SerialDebug("Debounce " + String(pin) + " starting: old:" + String(LastValue[pin]) + " new:" + String(value));
 			DebounceMS[pin] = millis() + debounce_millis;	// start debounce timer
 		}
 	}
@@ -418,6 +459,8 @@ void roofCloseNotify(int how, String msg) {
 void loop() {
 
 	flashHeartBeat();
+
+	reportStatsMaybe();
 
 	// Send update if status changes or timer expires
 	statusUpdateMaybe();
