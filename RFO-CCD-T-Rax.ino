@@ -301,8 +301,12 @@ int myDigitalRead(int pin) {
 }
 
 
-// Just in case I need it
+// Support active LOW
 void myDigitalWrite(int pin, int value) {
+	// Reverse value if pin is active LOW
+	if (PinActive[pin] == LOW) {
+		value = (value == LOW) ? HIGH : LOW;
+	}
 	digitalWrite(pin, value);
 }
 
