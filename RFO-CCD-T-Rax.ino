@@ -121,7 +121,7 @@ void setup()
 	lcd.setRGB(r,g,b);
 	lcd.write("RFO Roof Control");
 	lcd.setCursor(0,1);
-	lcd.write("Let's Roll!");
+	lcd.write("Let's Roll! v0.1");
 
 	Serial.begin(57600);
 	Serial.println("Bootin' Up!");
