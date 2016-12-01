@@ -100,9 +100,10 @@ int userBufferFull = 0;
 #define DebugOn		 9
 #define DebugOff	10
 #define Status		11
-#define CmdCount	12
+#define ToggleFob	12
+#define CmdCount	13
 String Usage;	 // Built dynamically during setup()
-String Cmds[] = { "Stop", "RPon", "RPoff", "MPon", "MPoff", "Open", "Close", "OverrideOn", "OverrideOff", "DebugOn", "DebugOff", "Status" };
+String Cmds[] = { "Stop", "RPon", "RPoff", "MPon", "MPoff", "Open", "Close", "OverrideOn", "OverrideOff", "DebugOn", "DebugOff", "Status", "ToggleFob" };
 int userCmd = None;	// Takes one of the above #define values:
 
 int EmergencyOverride = 0;
@@ -149,6 +150,7 @@ void setup()
 		PinActive[pin] = HIGH;
 	}
 	//PinActive[xxx] = LOW;
+	PinActive[weatherOK] = LOW;
 	PinActive[roofPowerOut] = LOW;
 	PinActive[mountPowerOut] = LOW;
 
@@ -156,7 +158,6 @@ void setup()
 	//Simulate[xxx] = 1; SimulateType[xxx] = HIGH|LOW;
 	Simulate[bldgPowerIn] = 1; SimulateType[bldgPowerIn] = HIGH;
 	Simulate[securityOK] = 1; SimulateType[securityOK] = HIGH;
-	Simulate[weatherOK] = 1; SimulateType[weatherOK] = HIGH;
 
 	// Define triggers
 	//  Trigger[openCloseIn] = 1;
@@ -555,6 +556,63 @@ void loop() {
 				myDigitalWrite(mountPowerOut, LOW);
 			} else {
 				pushMessage("ERROR: Mount is already off!");
+			}
+		}
+		userCmd = None;
+	}
+
+	// ToggleFob: Open or close the roof
+	if (userCmd == ToggleFob) {
+		if (EmergencyOverride) {
+			pushMessage("OVERRIDE: Toggling fob");
+			toggle(fobOutput);
+		} else {
+			if (sensorInput(roofClosed)) {
+				if (sensorInput(bldgPowerIn)) {
+					if (sensorInput(roofPowerIn)) {
+						if (sensorInput(mountParked)) {
+							if (!sensorInput(mountPowerIn)) {
+								if (sensorInput(weatherOK)) {
+									if (sensorInput(securityOK)) {
+										pushMessage("INFO: Toggling fob: opening roof");
+										toggle(fobOutput);
+									} else {
+										pushMessage("ERROR: Cannot open roof: security not OK");
+									}
+								} else {
+									pushMessage("ERROR: Cannot open roof: weather not OK");
+								}
+							} else {
+								pushMessage("ERROR: Cannot open roof: mount power is on");
+							}
+						} else {
+							pushMessage("ERROR: Cannot open roof: mount must be parked first");
+						}
+					} else {
+						pushMessage("ERROR: Cannot open roof: roof power is not on");
+					}
+				} else {
+					pushMessage("ERROR: Cannot open roof: building power has failed");
+				}
+
+			} else if (sensorInput(roofOpen)) {
+				if (sensorInput(roofPowerIn)) {
+					if (sensorInput(mountParked)) {
+						if (!sensorInput(mountPowerIn)) {
+							pushMessage("INFO: Toggling fob: closing roof");
+							toggle(fobOutput);
+						} else {
+							pushMessage("ERROR: Cannot close roof: mount power is on");
+						}
+					} else {
+						pushMessage("ERROR: Cannot close roof: mount must be parked first");
+					}
+				} else {
+					pushMessage("ERROR: Cannot close roof: roof power is not on");
+				}
+			} else {
+				pushMessage("INFO: Toggling fob");
+				toggle(fobOutput);
 			}
 		}
 		userCmd = None;
