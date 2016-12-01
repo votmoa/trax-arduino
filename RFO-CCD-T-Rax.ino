@@ -139,8 +139,8 @@ void setup()
 	pinMode(heartLed, OUTPUT);		// Heartbeat onboard LED
 
 	// Initialize outputs and variables
-	digitalWrite(mountPowerOut, LOW);
-	digitalWrite(roofPowerOut, LOW);
+	digitalWrite(mountPowerOut, HIGH);
+	digitalWrite(roofPowerOut, HIGH);
 	digitalWrite(fobOutput, LOW);
 	digitalWrite(heartLed, LOW);
 
@@ -155,7 +155,6 @@ void setup()
 	// override some pins; see myDigitalRead()
 	//Simulate[xxx] = 1; SimulateType[xxx] = HIGH|LOW;
 	Simulate[bldgPowerIn] = 1; SimulateType[bldgPowerIn] = HIGH;
-	Simulate[roofPowerIn] = 1; SimulateType[roofPowerIn] = HIGH;
 	Simulate[securityOK] = 1; SimulateType[securityOK] = HIGH;
 	Simulate[weatherOK] = 1; SimulateType[weatherOK] = HIGH;
 
