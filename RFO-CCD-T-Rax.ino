@@ -116,9 +116,9 @@ int DebugFlag = 0;
 #define C_OVERRIDE   2
 
 static int Color[3][3] = {
-	{ 255,   0,   0 },	// C_DEFAULT: red
-	{   0,   0, 255 },	// C_CLOSEMODE: blue
-	{   0, 255, 255 },	// C_OVERRIDE: cyan
+	{ 255, 0, 0 },    // C_DEFAULT: red
+	{ 0, 0, 255 },    // C_CLOSEMODE: blue
+	{ 0, 255, 255 },  // C_OVERRIDE: cyan
 };
 int lastColor = -1;
 
@@ -169,7 +169,7 @@ void setup()
 	Simulate[securityOK] = 1; SimulateType[securityOK] = HIGH;
 
 	// Define triggers
-	//  Trigger[openCloseIn] = 1;
+	// Trigger[openCloseIn] = 1;
 
 	// Dynamically build Usage string
 	Usage = "Supported commands:";
@@ -213,17 +213,17 @@ void reportStatsMaybe() {
 
 	if (millis() > nextStats) {
 		if (nextStats == 0) {
-      // First time through
+			// First time through
 			nextStats = millis() + statsMillis;
 		} else {
-      // Time to report
-      String msg;
-      msg = "INFO:";
-      msg.concat(" loopCount:" + String(loopCount/(statsMillis/1000)) + "/sec");
-      //msg.concat(" mem:" + String(freeMemory()));
-      pushMessage(msg);
-			loopCount = 0;  //reset
-			nextStats = millis() + statsMillis;
+			// Time to report
+			String msg;
+			msg = "INFO:";
+			msg.concat(" loopCount:" + String(loopCount/(statsMillis/1000)) + "/sec");
+			//msg.concat(" mem:" + String(freeMemory()));
+			pushMessage(msg);
+				loopCount = 0;  //reset
+				nextStats = millis() + statsMillis;
 		}
 	} else {
 		loopCount++;
