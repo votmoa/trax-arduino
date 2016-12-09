@@ -111,14 +111,23 @@ int DebugFlag = 0;
 
 // Setup ------------------------------------------------------------
 
+#define C_DEFAULT    0
+#define C_CLOSEMODE  1
+#define C_OVERRIDE   2
+
+static int Color[3][3] = {
+	{ 255,   0,   0 },	// C_DEFAULT: red
+	{   0,   0, 255 },	// C_CLOSEMODE: blue
+	{   0, 255, 255 },	// C_OVERRIDE: cyan
+};
+int lastColor = -1;
+
+
 void setup() 
 {
 	// ADDED BY JCF set up the LCD's number of columns and rows, set color, and write initial message:
 	lcd.begin(16, 2);	 
-	int r = 255;
-	int g = 0;
-	int b = 0;
-	lcd.setRGB(r,g,b);
+	lcd.setRGB(Color[C_DEFAULT][0], Color[C_DEFAULT][1], Color[C_DEFAULT][2]);
 	lcd.write("RFO Roof Control");
 	lcd.setCursor(0,1);
 	lcd.write("Let's Roll! v0.1");
@@ -354,13 +363,6 @@ void serialSuck() {
 	while (Serial.available() && !userBufferFull) {
 		char c = Serial.read();
 
-		//ADDED BY JCF clears lcd (if ":" received) then writes to lcd the command transmitted from Java
-		if (c == ':') {
-			lcd.clear();
-		} else {
-			lcd.write(c);
-		}
-
 		if (c >= 32 && c <= 126) {
 			userBuffer += c;
 		} else if (c == 10) {	// newline
@@ -377,6 +379,12 @@ void serialSuck() {
 			return;
 		}
 		SerialDebug("userBuffer: " + userBuffer);
+
+		// Overwrite first line with new command
+		lcd.setCursor(0, 0);
+		lcd.write("                ");
+		lcd.setCursor(0, 0);
+		lcd.print(userBuffer.substring(2));
 
 		if (userBuffer.startsWith(userBufferVersion)) {
 			if (userCmd != None) {
@@ -689,6 +697,7 @@ void loop() {
 	// OverrideOn: Enable master override
 	if (userCmd == OverrideOn) {
 		pushMessage("INFO: Entering emergency override; BE VERY CAREFUL");
+		//lcd.setRGB(Cyan[0], Cyan[1], Cyan[2]);
 		EmergencyOverride = 1;
 		userCmd = None;
 	}
@@ -696,6 +705,7 @@ void loop() {
 	// OverrideOn: Enable master override
 	if (userCmd == OverrideOff) {
 		pushMessage("INFO: Exiting emergency override; *whew*");
+		//lcd.setRGB(Red[0], Red[1], Red[2]);
 		EmergencyOverride = 0;
 		userCmd = None;
 	}
@@ -732,6 +742,11 @@ void loop() {
 			// Weather was not OK but has recovered
 			pushMessage("INFO: Weather sensor recovery; resuming normal operation");
 			wxCloseRoof = 0;
+			if (EmergencyOverride) {
+				//lcd.setRGB(Cyan[0], Cyan[1], Cyan[2]);
+			} else {
+				//lcd.setRGB(Red[0], Red[1], Red[2]);
+			}
 		} else {
 			// Weather was OK but is no longer
 			if (EmergencyOverride) {
@@ -739,6 +754,7 @@ void loop() {
 			} else {
 				pushMessage("WARNING: Weather sensor indicates inclemency; entering roof-close mode");
 				wxCloseRoof = 1;
+				//lcd.setRGB(Blue[0], Blue[1], Blue[2]);
 			}
 		}
 		// Track weather status
@@ -752,6 +768,11 @@ void loop() {
 			// Building power was not OK but has recovered
 			pushMessage("WARNING: Building power recovery; resuming normal operation");
 			pwrCloseRoof = 0;
+			if (EmergencyOverride) {
+				//lcd.setRGB(Cyan[0], Cyan[1], Cyan[2]);
+			} else {
+				//lcd.setRGB(Red[0], Red[1], Red[2]);
+			}
 		} else {
 			// Weather was OK but is no longer
 			if (EmergencyOverride) {
@@ -759,6 +780,7 @@ void loop() {
 			} else {
 				roofCloseNotify(FORCE, "WARNING: Building power failure; entering roof-close mode");
 				pwrCloseRoof = 1;
+				//lcd.setRGB(Blue[0], Blue[1], Blue[2]);
 			}
 		}
 		// Track weather status
@@ -812,6 +834,22 @@ void loop() {
 				roofCloseNotify(MAYBE, "INFO: Roof-close mode: waiting for roof to close");
 			}
 		}
+	}
+
+	// Update display color
+	int currColor;
+	if (EmergencyOverride) {
+		currColor = C_OVERRIDE;
+	} else {
+		if (!currWeatherOK || !currBldgPower) {
+			currColor = C_CLOSEMODE;
+		} else {
+			currColor = C_DEFAULT;
+		}
+	}
+	if (currColor != lastColor) {
+		lcd.setRGB(Color[currColor][0], Color[currColor][1], Color[currColor][2]);
+		lastColor = currColor;
 	}
 
 }
