@@ -193,6 +193,12 @@ void flashHeartBeat() {
 	}
 }
 
+// Update second line of LCD
+void writeLcdStatus(String lcdmsg) {
+	lcd.setCursor(0,1);
+	lcd.write((char *) lcdmsg.c_str());
+}
+
 
 extern unsigned int __bss_end;
 extern unsigned int __heap_start;
@@ -222,8 +228,8 @@ void reportStatsMaybe() {
 			msg.concat(" loopCount:" + String(loopCount/(statsMillis/1000)) + "/sec");
 			//msg.concat(" mem:" + String(freeMemory()));
 			pushMessage(msg);
-				loopCount = 0;  //reset
-				nextStats = millis() + statsMillis;
+			loopCount = 0;  //reset
+			nextStats = millis() + statsMillis;
 		}
 	} else {
 		loopCount++;
@@ -382,7 +388,7 @@ void serialSuck() {
 
 		// Overwrite first line with new command
 		lcd.setCursor(0, 0);
-		lcd.write("                ");
+		lcd.write("               ");
 		lcd.setCursor(0, 0);
 		lcd.print(userBuffer.substring(2));
 
@@ -432,8 +438,35 @@ void printStatus() {
 	msg.concat(" roofPowerIn:" + String(sensorInput(roofPowerIn), DEC));
 	msg.concat(" mountPowerIn:" + String(sensorInput(mountPowerIn), DEC));
 	pushMessage(msg);
+
+	short b1 = 0;
+	if (sensorInput(securityOK))	{ b1 |= 0x8; }
+	if (sensorInput(weatherOK))	{ b1 |= 0x4; }
+	if (sensorInput(roofOpen))	{ b1 |= 0x2; }
+	if (sensorInput(roofClosed))	{ b1 |= 0x1; }
+	short b2 = 0;
+	if (sensorInput(mountParked))	{ b2 |= 0x8; }
+	if (sensorInput(bldgPowerIn))	{ b2 |= 0x4; }
+	if (sensorInput(roofPowerIn))	{ b2 |= 0x2; }
+	if (sensorInput(mountPowerIn))	{ b2 |= 0x1; }
+	String lcdmsg = String(b1, HEX) + String(b2, HEX);
+	lcdmsg.toUpperCase();
+	lcd.setCursor(14,0);
+	lcd.write((char *) lcdmsg.c_str());
 }
 
+void printStatusLcd() {
+	String lcdmsg = "";
+	lcdmsg.concat("S" + String(sensorInput(securityOK), DEC));
+	lcdmsg.concat("W" + String(sensorInput(weatherOK), DEC));
+	lcdmsg.concat("O" + String(sensorInput(roofOpen), DEC));
+	lcdmsg.concat("C" + String(sensorInput(roofClosed), DEC));
+	lcdmsg.concat("P" + String(sensorInput(mountParked), DEC));
+	lcdmsg.concat("B" + String(sensorInput(bldgPowerIn), DEC));
+	lcdmsg.concat("R" + String(sensorInput(roofPowerIn), DEC));
+	lcdmsg.concat("M" + String(sensorInput(mountPowerIn), DEC));
+	writeLcdStatus(lcdmsg.c_str());
+}
 
 /*
  * Print message if timer has expired
@@ -441,7 +474,7 @@ void printStatus() {
  *	 FORCE always prints and resets timer
  *	 LAST always prints and clears timer
  */
-void roofCloseNotify(int how, String msg) {
+void roofCloseNotify(int how, String msg, String lcdmsg) {
 	static unsigned int nextRoofCloseNotify = 0;
 	static String lastRoofMsg;
 	// Force printing if we have a new message
@@ -454,6 +487,7 @@ void roofCloseNotify(int how, String msg) {
 	}
 	// Notify and update timer
 	pushMessage(msg);
+	writeLcdStatus(lcdmsg);
 	if (how == LAST) {
 		nextRoofCloseNotify = 0;
 		lastRoofMsg = String("");
@@ -493,6 +527,7 @@ void loop() {
 	// Stop: EMERGENCY STOP: turn off roof power
 	if (userCmd == Stop) {
 		pushMessage("INFO: EMERGENCY STOP; Turning off roof power");
+		writeLcdStatus("EMERGENCY STOP!!");
 		pushMessage("INFO: You will need to Override to recover from this");
 		myDigitalWrite(roofPowerOut, LOW);
 		userCmd = None;
@@ -505,12 +540,15 @@ void loop() {
 	if (userCmd == RPon) {
 		if (EmergencyOverride) {
 			pushMessage("OVERRIDE: Turning on roof power");
+			writeLcdStatus("Roof power on   ");
 			myDigitalWrite(roofPowerOut, HIGH);
 		} else {
 			if (sensorInput(roofPowerIn)) {
 				pushMessage("ERROR: Roof is already on!");
+				writeLcdStatus("Roof already on ");
 			} else {
 				pushMessage("INFO: Turning on roof power");
+				writeLcdStatus("Roof power on   ");
 				myDigitalWrite(roofPowerOut, HIGH);
 			}
 		}
@@ -521,13 +559,16 @@ void loop() {
 	if (userCmd == RPoff) {
 		if (EmergencyOverride) {
 			pushMessage("OVERRIDE: Turning off roof power");
+			writeLcdStatus("Roof power off  ");
 			myDigitalWrite(roofPowerOut, LOW);
 		} else {
 			if (sensorInput(roofPowerIn)) {
 				pushMessage("INFO: Turning off roof power");
+				writeLcdStatus("Roof power off  ");
 				myDigitalWrite(roofPowerOut, LOW);
 			} else {
 				pushMessage("ERROR: Roof is already off!");
+				writeLcdStatus("Roof already off");
 			}
 		}
 		userCmd = None;
@@ -537,15 +578,19 @@ void loop() {
 	if (userCmd == MPon) {
 		if (EmergencyOverride) {
 			pushMessage("OVERRIDE: Turning on mount power");
+			writeLcdStatus("Mount power on  ");
 			myDigitalWrite(mountPowerOut, HIGH);
 		} else {
 			if (sensorInput(mountPowerIn)) {
 				pushMessage("ERROR: Mount is already on!");
+				writeLcdStatus("Mount already on");
 			} else {
 				if (!sensorInput(roofOpen)) {
 					pushMessage("ERROR: Cannot turn on mount: roof is not open");
+					writeLcdStatus("Roof is not open");
 				} else {
 					pushMessage("INFO: Turning on mount power");
+					writeLcdStatus("Mount power on  ");
 					myDigitalWrite(mountPowerOut, HIGH);
 				}
 			}
@@ -557,13 +602,16 @@ void loop() {
 	if (userCmd == MPoff) {
 		if (EmergencyOverride) {
 			pushMessage("OVERRIDE: Turning off mount power");
+			writeLcdStatus("Mount power off ");
 			myDigitalWrite(mountPowerOut, LOW);
 		} else {
 			if (sensorInput(mountPowerIn)) {
 				pushMessage("INFO: Turning off mount power");
+				writeLcdStatus("Mount power off ");
 				myDigitalWrite(mountPowerOut, LOW);
 			} else {
 				pushMessage("ERROR: Mount is already off!");
+				writeLcdStatus("Mnt already off ");
 			}
 		}
 		userCmd = None;
@@ -573,6 +621,7 @@ void loop() {
 	if (userCmd == ToggleFob) {
 		if (EmergencyOverride) {
 			pushMessage("OVERRIDE: Toggling fob");
+			writeLcdStatus("Toggling fob    ");
 			toggle(fobOutput);
 		} else {
 			if (sensorInput(roofClosed)) {
@@ -583,24 +632,31 @@ void loop() {
 								if (sensorInput(weatherOK)) {
 									if (sensorInput(securityOK)) {
 										pushMessage("INFO: Toggling fob: opening roof");
+										writeLcdStatus("Toggling fob    ");
 										toggle(fobOutput);
 									} else {
 										pushMessage("ERROR: Cannot open roof: security not OK");
+										writeLcdStatus("Security not OK ");
 									}
 								} else {
 									pushMessage("ERROR: Cannot open roof: weather not OK");
+									writeLcdStatus("Weather not OK  ");
 								}
 							} else {
 								pushMessage("ERROR: Cannot open roof: mount power is on");
+								writeLcdStatus("Mount already on");
 							}
 						} else {
 							pushMessage("ERROR: Cannot open roof: mount must be parked first");
+							writeLcdStatus("Mount not parked");
 						}
 					} else {
 						pushMessage("ERROR: Cannot open roof: roof power is not on");
+						writeLcdStatus("Roof pwr not on ");
 					}
 				} else {
 					pushMessage("ERROR: Cannot open roof: building power has failed");
+					writeLcdStatus("Bldg power fail ");
 				}
 
 			} else if (sensorInput(roofOpen)) {
@@ -608,18 +664,23 @@ void loop() {
 					if (sensorInput(mountParked)) {
 						if (!sensorInput(mountPowerIn)) {
 							pushMessage("INFO: Toggling fob: closing roof");
+							writeLcdStatus("Toggling fob    ");
 							toggle(fobOutput);
 						} else {
 							pushMessage("ERROR: Cannot close roof: mount power is on");
+							writeLcdStatus("Mount already on");
 						}
 					} else {
 						pushMessage("ERROR: Cannot close roof: mount must be parked first");
+						writeLcdStatus("Mount not parked");
 					}
 				} else {
 					pushMessage("ERROR: Cannot close roof: roof power is not on");
+					writeLcdStatus("Roof pwr not on ");
 				}
 			} else {
 				pushMessage("INFO: Toggling fob");
+				writeLcdStatus("Toggling fob    ");
 				toggle(fobOutput);
 			}
 		}
@@ -630,6 +691,7 @@ void loop() {
 	if (userCmd == Open) {
 		if (EmergencyOverride) {
 			pushMessage("OVERRIDE: Opening roof");
+			writeLcdStatus("Opening roof    ");
 			toggle(fobOutput);
 		} else {
 			if (sensorInput(roofClosed)) {
@@ -640,27 +702,35 @@ void loop() {
 								if (sensorInput(weatherOK)) {
 									if (sensorInput(securityOK)) {
 										pushMessage("INFO: Opening roof");
+										writeLcdStatus("Opening roof    ");
 										toggle(fobOutput);
 									} else {
 										pushMessage("ERROR: Cannot open roof: security not OK");
+										writeLcdStatus("Security not ok ");
 									}
 								} else {
 									pushMessage("ERROR: Cannot open roof: weather not OK");
+									writeLcdStatus("Weather not ok  ");
 								}
 							} else {
 								pushMessage("ERROR: Cannot open roof: mount power is on");
+								writeLcdStatus("Mnt power is on ");
 							}
 						} else {
 							pushMessage("ERROR: Cannot open roof: mount must be parked first");
+							writeLcdStatus("Mount not parked");
 						}
 					} else {
 						pushMessage("ERROR: Cannot open roof: roof power is not on");
+						writeLcdStatus("Roof pwr not on ");
 					}
 				} else {
 					pushMessage("ERROR: Cannot open roof: building power has failed");
+					writeLcdStatus("Bldg power fail ");
 				}
 			} else {
 				pushMessage("ERROR: Cannot open roof: roof is not closed!");
+				writeLcdStatus("Roof not closed ");
 			}
 		}
 		userCmd = None;
@@ -670,6 +740,7 @@ void loop() {
 	if (userCmd == Close) {
 		if (EmergencyOverride) {
 			pushMessage("OVERRIDE: Closing roof");
+			writeLcdStatus("Closing roof    ");
 			toggle(fobOutput);
 		} else {
 			if (sensorInput(roofOpen)) {
@@ -677,18 +748,23 @@ void loop() {
 					if (sensorInput(mountParked)) {
 						if (!sensorInput(mountPowerIn)) {
 							pushMessage("INFO: Closing roof");
+							writeLcdStatus("Closing roof    ");
 							toggle(fobOutput);
 						} else {
 							pushMessage("ERROR: Cannot close roof: mount power is on");
+							writeLcdStatus("Mount power on  ");
 						}
 					} else {
 						pushMessage("ERROR: Cannot close roof: mount must be parked first");
+						writeLcdStatus("Mount not parked");
 					}
 				} else {
 					pushMessage("ERROR: Cannot close roof: roof power is not on");
+					writeLcdStatus("Roof pwr not on ");
 				}
 			} else {
 				pushMessage("ERROR: Cannot close roof: roof is not open");
+				writeLcdStatus("Roof is not open");
 			}
 		}
 		userCmd = None;
@@ -697,7 +773,7 @@ void loop() {
 	// OverrideOn: Enable master override
 	if (userCmd == OverrideOn) {
 		pushMessage("INFO: Entering emergency override; BE VERY CAREFUL");
-		//lcd.setRGB(Cyan[0], Cyan[1], Cyan[2]);
+		writeLcdStatus("OVERRIDE MODE ON");
 		EmergencyOverride = 1;
 		userCmd = None;
 	}
@@ -705,7 +781,7 @@ void loop() {
 	// OverrideOn: Enable master override
 	if (userCmd == OverrideOff) {
 		pushMessage("INFO: Exiting emergency override; *whew*");
-		//lcd.setRGB(Red[0], Red[1], Red[2]);
+		writeLcdStatus("OVERRIDE OFF :-)");
 		EmergencyOverride = 0;
 		userCmd = None;
 	}
@@ -713,6 +789,7 @@ void loop() {
 	// DebugOn: Enable debugging messages
 	if (userCmd == DebugOn) {
 		pushMessage("INFO: Enabling debug messages");
+		writeLcdStatus("Debug mode on   ");
 		DebugFlag = 1;
 		userCmd = None;
 	}
@@ -720,6 +797,7 @@ void loop() {
 	// DebugOff: Disable debugging messages
 	if (userCmd == DebugOff) {
 		pushMessage("INFO: Disabling debug messages");
+		writeLcdStatus("Debug mode off  ");
 		DebugFlag = 0;
 		userCmd = None;
 	}
@@ -727,6 +805,7 @@ void loop() {
 	// Status: Print sensor status
 	if (userCmd == Status) {
 		printStatus();
+		printStatusLcd();
 		userCmd = None;
 	}
 
@@ -741,20 +820,17 @@ void loop() {
 		if (currWeatherOK) {
 			// Weather was not OK but has recovered
 			pushMessage("INFO: Weather sensor recovery; resuming normal operation");
+			writeLcdStatus("Weather OK      ");
 			wxCloseRoof = 0;
-			if (EmergencyOverride) {
-				//lcd.setRGB(Cyan[0], Cyan[1], Cyan[2]);
-			} else {
-				//lcd.setRGB(Red[0], Red[1], Red[2]);
-			}
 		} else {
 			// Weather was OK but is no longer
 			if (EmergencyOverride) {
 				pushMessage("OVERRIDE: Weather sensor indicates inclemency; ignoring");
+				writeLcdStatus("WX BAD: ignoring");
 			} else {
 				pushMessage("WARNING: Weather sensor indicates inclemency; entering roof-close mode");
+				writeLcdStatus("WX BAD: closing ");
 				wxCloseRoof = 1;
-				//lcd.setRGB(Blue[0], Blue[1], Blue[2]);
 			}
 		}
 		// Track weather status
@@ -767,20 +843,16 @@ void loop() {
 		if (currBldgPower) {
 			// Building power was not OK but has recovered
 			pushMessage("WARNING: Building power recovery; resuming normal operation");
+			writeLcdStatus("Bldg pwr recover");
 			pwrCloseRoof = 0;
-			if (EmergencyOverride) {
-				//lcd.setRGB(Cyan[0], Cyan[1], Cyan[2]);
-			} else {
-				//lcd.setRGB(Red[0], Red[1], Red[2]);
-			}
 		} else {
 			// Weather was OK but is no longer
 			if (EmergencyOverride) {
 				pushMessage("OVERRIDE: Building power failure; ignoring");
+				writeLcdStatus("Bldg pwr failure");
 			} else {
-				roofCloseNotify(FORCE, "WARNING: Building power failure; entering roof-close mode");
+				roofCloseNotify(FORCE, "WARNING: Building power failure; entering roof-close mode", "Bldg pwr failure");
 				pwrCloseRoof = 1;
-				//lcd.setRGB(Blue[0], Blue[1], Blue[2]);
 			}
 		}
 		// Track weather status
@@ -793,13 +865,13 @@ void loop() {
 	if (wxCloseRoof || pwrCloseRoof) {
 		static int roofClosing = 0;
 		if (EmergencyOverride) {
-			roofCloseNotify(LAST, "OVERRIDE: Cancelling roof-close mode");
+			roofCloseNotify(LAST, "OVERRIDE: Cancelling roof-close mode", "RoofClose cancel");
 			wxCloseRoof = 0;
 			pwrCloseRoof = 0;
 			roofClosing = 0;
 		} else {
 			if (sensorInput(roofClosed)) {
-				roofCloseNotify(LAST, "INFO: Roof-close mode: mount power off; exiting roof-close mode");
+				roofCloseNotify(LAST, "INFO: Roof-close mode: mount power off; exiting roof-close mode", "Roof closed     ");
 				wxCloseRoof = 0;
 				pwrCloseRoof = 0;
 				roofClosing = 0;
@@ -807,31 +879,31 @@ void loop() {
 				if (sensorInput(roofPowerIn)) {
 					if (sensorInput(mountParked)) {
 						if (sensorInput(mountPowerIn)) {
-							roofCloseNotify(MAYBE, "INFO: Roof-close mode: mount parked; turning off mount power");
+							roofCloseNotify(MAYBE, "INFO: Roof-close mode: mount parked; turning off mount power", "Turning mnt off ");
 							myDigitalWrite(mountPowerOut, LOW);
 						} else {
 							if (roofClosing) {
-								roofCloseNotify(MAYBE, "INFO: Roof-close mode: waiting for roof to start closing");
+								roofCloseNotify(MAYBE, "INFO: Roof-close mode: waiting for roof to start closing", "Roof close wait ");
 							} else {
-								roofCloseNotify(FORCE, "INFO: Roof-close mode: closing roof");
+								roofCloseNotify(FORCE, "INFO: Roof-close mode: closing roof", "Closing roof    ");
 								toggle(fobOutput);
 								roofClosing = 1;
 							}
 						}
 					} else {
 						if (sensorInput(mountPowerIn)) {
-							roofCloseNotify(MAYBE, "INFO: Roof-close mode: waiting for mount to park");
+							roofCloseNotify(MAYBE, "INFO: Roof-close mode: waiting for mount to park", "Mount park wait ");
 						} else {
-							roofCloseNotify(MAYBE, "INFO: Roof-close mode: Turning on mount power");
+							roofCloseNotify(MAYBE, "INFO: Roof-close mode: Turning on mount power", "Turning mount on");
 							myDigitalWrite(mountPowerOut, HIGH);
 						}
 					}
 				} else {
-					roofCloseNotify(MAYBE, "INFO: Roof-close mode: Turning on roof power");
+					roofCloseNotify(MAYBE, "INFO: Roof-close mode: Turning on roof power", "Turning roof on ");
 					myDigitalWrite(roofPowerOut, HIGH);
 				}
 			} else {
-				roofCloseNotify(MAYBE, "INFO: Roof-close mode: waiting for roof to close");
+				roofCloseNotify(MAYBE, "INFO: Roof-close mode: waiting for roof to close", "Roof close wait ");
 			}
 		}
 	}
