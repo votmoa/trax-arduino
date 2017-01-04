@@ -41,7 +41,7 @@ int statusInterval = 30 * 1000;	// force a status update at least every 30 secon
 
 // Roof-close mode setup
 unsigned int roofCloseNotifyInterval = 5000;	// ms between roof-close mode notifications
-int lastWeatherOK = HIGH;	// Track previous weather status
+int lastWeatherOK = LOW;	// Track previous weather status (active LOW... assume last weather good)
 int lastBldgPower = HIGH;	// Track previous power status
 int wxCloseRoof = 0;	// Roof-close mode flag for weather
 int pwrCloseRoof = 0;	// Roof-close mode flag for power
@@ -130,7 +130,7 @@ void setup()
 	lcd.setRGB(Color[C_DEFAULT][0], Color[C_DEFAULT][1], Color[C_DEFAULT][2]);
 	lcd.write("RFO Roof Control");
 	lcd.setCursor(0,1);
-	lcd.write("Let's Roll! v0.1");
+	lcd.write("Let's Roll! v0.2");
 
 	Serial.begin(57600);
 	Serial.println("Bootin' Up!");
@@ -165,7 +165,6 @@ void setup()
 
 	// override some pins; see myDigitalRead()
 	//Simulate[xxx] = 1; SimulateType[xxx] = HIGH|LOW;
-	Simulate[bldgPowerIn] = 1; SimulateType[bldgPowerIn] = HIGH;
 	Simulate[securityOK] = 1; SimulateType[securityOK] = HIGH;
 
 	// Define triggers
