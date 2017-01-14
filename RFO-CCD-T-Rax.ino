@@ -818,7 +818,7 @@ void loop() {
 	if (currWeatherOK != lastWeatherOK) {
 		if (currWeatherOK) {
 			// Weather was not OK but has recovered
-			pushMessage("INFO: Weather sensor recovery; resuming normal operation");
+			pushMessage("WARNING: Weather sensor recovery; resuming normal operation");
 			writeLcdStatus("Weather OK      ");
 			wxCloseRoof = 0;
 		} else {
@@ -870,7 +870,7 @@ void loop() {
 			roofClosing = 0;
 		} else {
 			if (sensorInput(roofClosed)) {
-				roofCloseNotify(LAST, "INFO: Roof-close mode: mount power off; exiting roof-close mode", "Roof closed     ");
+				roofCloseNotify(LAST, "WARNING: Roof-close mode: mount power off; exiting roof-close mode", "Roof closed     ");
 				wxCloseRoof = 0;
 				pwrCloseRoof = 0;
 				roofClosing = 0;
@@ -878,31 +878,31 @@ void loop() {
 				if (sensorInput(roofPowerIn)) {
 					if (sensorInput(mountParked)) {
 						if (sensorInput(mountPowerIn)) {
-							roofCloseNotify(MAYBE, "INFO: Roof-close mode: mount parked; turning off mount power", "Turning mnt off ");
+							roofCloseNotify(MAYBE, "WARNING: Roof-close mode: mount parked; turning off mount power", "Turning mnt off ");
 							myDigitalWrite(mountPowerOut, LOW);
 						} else {
 							if (roofClosing) {
-								roofCloseNotify(MAYBE, "INFO: Roof-close mode: waiting for roof to start closing", "Roof close wait ");
+								roofCloseNotify(MAYBE, "WARNING: Roof-close mode: waiting for roof to start closing", "Roof close wait ");
 							} else {
-								roofCloseNotify(FORCE, "INFO: Roof-close mode: closing roof", "Closing roof    ");
+								roofCloseNotify(FORCE, "WARNING: Roof-close mode: closing roof", "Closing roof    ");
 								toggle(fobOutput);
 								roofClosing = 1;
 							}
 						}
 					} else {
 						if (sensorInput(mountPowerIn)) {
-							roofCloseNotify(MAYBE, "INFO: Roof-close mode: waiting for mount to park", "Mount park wait ");
+							roofCloseNotify(MAYBE, "WARNING: Roof-close mode: waiting for mount to park", "Mount park wait ");
 						} else {
-							roofCloseNotify(MAYBE, "INFO: Roof-close mode: Turning on mount power", "Turning mount on");
+							roofCloseNotify(MAYBE, "WARNING: Roof-close mode: Turning on mount power", "Turning mount on");
 							myDigitalWrite(mountPowerOut, HIGH);
 						}
 					}
 				} else {
-					roofCloseNotify(MAYBE, "INFO: Roof-close mode: Turning on roof power", "Turning roof on ");
+					roofCloseNotify(MAYBE, "WARNING: Roof-close mode: Turning on roof power", "Turning roof on ");
 					myDigitalWrite(roofPowerOut, HIGH);
 				}
 			} else {
-				roofCloseNotify(MAYBE, "INFO: Roof-close mode: waiting for roof to close", "Roof close wait ");
+				roofCloseNotify(MAYBE, "WARNING: Roof-close mode: waiting for roof to close", "Roof close wait ");
 			}
 		}
 	}
