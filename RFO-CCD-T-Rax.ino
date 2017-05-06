@@ -40,7 +40,7 @@ int statusWatchersCount = 8;
 int statusInterval = 30 * 1000;	// force a status update at least every 30 seconds
 
 // Roof-close mode setup
-unsigned int roofCloseNotifyInterval = 5000;	// ms between roof-close mode notifications
+unsigned int roofCloseNotifyInterval = 15 * 1000;	// ms between roof-close mode notifications
 int lastWeatherOK = LOW;	// Track previous weather status (active LOW... assume last weather good)
 int lastBldgPower = HIGH;	// Track previous power status
 int wxCloseRoof = 0;	// Roof-close mode flag for weather
