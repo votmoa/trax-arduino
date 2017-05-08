@@ -151,7 +151,7 @@ void setup()
 	// Initialize outputs and variables
 	digitalWrite(mountPowerOut, HIGH);
 	digitalWrite(roofPowerOut, HIGH);
-	digitalWrite(fobOutput, HIGH);
+	digitalWrite(fobOutput, LOW);
 	digitalWrite(heartLed, LOW);
 
 	// Default all pins to active HIGH; change by hand
@@ -162,7 +162,6 @@ void setup()
 	PinActive[weatherOK] = LOW;
 	PinActive[roofPowerOut] = LOW;
 	PinActive[mountPowerOut] = LOW;
-	PinActive[fobOutput] = LOW;
 
 	// override some pins; see myDigitalRead()
 	//Simulate[xxx] = 1; SimulateType[xxx] = HIGH|LOW;
